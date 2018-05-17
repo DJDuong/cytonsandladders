@@ -16,12 +16,12 @@ function qMatrix = RMRS(cyton, startPos, endPos, rpy)
 
     s = lspb(0,1,steps);             % Trapezoidal trajectory scalar
     for i=1:steps
-        x(1,i) = (1-s(i))*startPos(1) + s(i)*endPos(1); % Points in x
-        x(2,i) = (1-s(i))*startPos(2) + s(i)*endPos(2); % Points in y
-        x(3,i) = (1-s(i))*startPos(3) + s(i)*endPos(3);  % Points in z
-        theta(1,i) = rpy(1);                      % Roll angle 
-        theta(2,i) = rpy(2);                      % Pitch angle
-        theta(3,i) = rpy(3);                      % Yaw angle
+        x(1,i) = (1-s(i))*startPos(1) + s(i)*endPos(1);     % Points in x
+        x(2,i) = (1-s(i))*startPos(2) + s(i)*endPos(2);     % Points in y
+        x(3,i) = (1-s(i))*startPos(3) + s(i)*endPos(3);     % Points in z
+        theta(1,i) = (1-s(i))*startRPY(1) + s(i)*endRPY(1); % Roll angle 
+        theta(2,i) = (1-s(i))*startRPY(2) + s(i)*endRPY(2); % Pitch angle
+        theta(3,i) = (1-s(i))*startRPY(3) + s(i)*endRPY(3); % Yaw angle
     end
  
     T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) x(:,1);zeros(1,3) 1];          % Create transformation of first point and angle
