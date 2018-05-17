@@ -1,4 +1,5 @@
 function MoveCyton()
+%% Enabling robot movement and gripper
 % Plug ethernet from modem to laptop.
 % Plug ethernet from modem to upboard.
 % Connect upboard powersource (socket to triangular prism ting to upboard)
@@ -18,12 +19,9 @@ function MoveCyton()
 % first step.
 % If successful and the green text saying You can start planning now! comes
 % up, run the below setup section, then whichever other section.
-
-
-%% Enabling robot movement and gripper
 %Setup Variables
 rosshutdown
-rosinit('192.168.0.253');
+rosinit('192.168.0.102');
 cute_enable_robot_client = rossvcclient('cute_enable_robot')
 cute_enable_robot_msg = rosmessage(cute_enable_robot_client);
 
@@ -31,7 +29,7 @@ cute_enable_robot_msg = rosmessage(cute_enable_robot_client);
 
 cute_enable_robot_msg.EnableRobot = true; %false
 cute_enable_robot_client.call(cute_enable_robot_msg);
-% Enabling Gripper
+%% Enabling Gripper
 %Setup Variables
 
 cute_enable_gripper_client = rossvcclient('claw_controller/torque_enable')
@@ -48,7 +46,7 @@ cute_claw_publisher = rospublisher('/claw_controller/command');
 cute_claw_msg = rosmessage(cute_claw_publisher);
 % Publishing
 
-cute_claw_msg.Data = -1.5; % Values must be between -1.5 (closed) and 0 (open)
+cute_claw_msg.Data = -1.3; % Values must be between -1.5 (closed) and 0 (open)
 % cute_claw_msg.Data = 0; % Values must be between -1.5 (closed) and 0 (open)
 cute_claw_publisher.send(cute_claw_msg);
 
@@ -62,11 +60,11 @@ cute_execute_msg = rosmessage(cute_execute_client);
 % Setting the positions (Example 0.1m, -0.15m, 0.2m)
 
 cute_move_msg.Pose.Position.X = 0.1;
-cute_move_msg.Pose.Position.Y = -0.15;
+cute_move_msg.Pose.Position.Y = 0.1;
 cute_move_msg.Pose.Position.Z = 0.2;
 % Setting the orientation (Example 0 rads, PI rads, 0 rads)
 
-quat = eul2quat(deg2rad([0,180,0]), 'XYZ');%Remember: Read the help file to understand how to use this function (’help eul2quat’)
+quat = eul2quat(deg2rad([0,90,90]), 'XYZ');%Remember: Read the help file to understand how to use this function (’help eul2quat’)
 cute_move_msg.Pose.Orientation.W = quat(1);
 cute_move_msg.Pose.Orientation.X = quat(2);
 cute_move_msg.Pose.Orientation.Y = quat(3);
@@ -87,16 +85,42 @@ cute_execute_client.call(cute_execute_msg);
 cute_multi_joint_client = rossvcclient('/cute_multi_joint');
 cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
 % Setting values and sending to the robot
-
 robot = Cyton;
-qsim1 = robot.model.ikcon(transl(0.1,-0.15,0.2))
-robot.model.teach(qsim1)
-
+startPos = [-0.05 0.1 0.3]
+endPos = [0.05 0.1 0.3]
+rpy = deg2rad([-90 0 0])
+qMatrix = RMRS(robot.model, startPos, endPos, rpy);
+robot.model.teach(qMatrix)
 areal = 1; % acceleration, doesnt do anything...
 vreal = 1; % velocity slowest to fastest = 0 to 1.
 
 cute_multi_joint_msg.Vel = vreal;
 cute_multi_joint_msg.Acc = areal;
-cute_multi_joint_msg.JointStates = qsim1;
+[rows,columns] = size(qMatrix)
+for i = 1:rows
+    i 
+    cute_multi_joint_msg.JointStates = qMatrix(i,:);
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+end
+%% Initial Start
+% Setup Variables
+
+cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+areal = 1; % acceleration, doesnt do anything...
+vreal = 1; % velocity slowest to fastest = 0 to 1.
+cute_multi_joint_msg.Vel = vreal;
+cute_multi_joint_msg.Acc = areal;
+cute_multi_joint_msg.JointStates = [0 0 0 0 0 0 0];
 cute_multi_joint_client.call(cute_multi_joint_msg);
+%% To move a single joint to selected position
+% Setup Variables
+
+cute_single_joint_client = rossvcclient('/cute_single_joint');
+cute_single_joint_msg = rosmessage(cute_single_joint_client);
+% Setting values and sending to the robot
+
+cute_single_joint_msg.JointNumber = 1;% Joints 0-6
+cute_single_joint_msg.Angle = deg2rad([80]);% (Rads)
+cute_single_joint_client.call(cute_single_joint_msg);
 end
