@@ -14,18 +14,30 @@ function qMatrix = RMRS(cyton, startPos, endPos, startRPY, endRPY)
     positionError = zeros(3,steps); % For plotting trajectory error
     angleError = zeros(3,steps);    % For plotting trajectory error
     
-    s = lspb(0,1,steps);             % Trapezoidal trajectory scalar
+    s = lspb(0,1,(steps/2));             % Trapezoidal trajectory scalar
+    s = [s s];
+    waypoint = [-0.15 0 0];
+    for i = 2 : 3
+        waypoint(i)=(startPos(i)+endPos(i))/2;
+    end
     for i=1:steps
-        x(1,i) = (1-s(i))*startPos(1) + s(i)*endPos(1);     % Points in x
-        x(2,i) = (1-s(i))*startPos(2) + s(i)*endPos(2);     % Points in y
-        x(3,i) = (1-s(i))*startPos(3) + s(i)*endPos(3);     % Points in z
+        if i<=(steps/2)
+            x(1,i) = (1-s(i))*startPos(1) + s(i)*waypoint(1);     % Points in x
+            x(2,i) = (1-s(i))*startPos(2) + s(i)*waypoint(2);     % Points in x
+            x(3,i) = (1-s(i))*startPos(3) + s(i)*waypoint(3);     % Points in y
+        else
+            x(1,i) = (1-s(i))*waypoint(1) + s(i)*endPos(1);     % Points in y
+            x(2,i) = (1-s(i))*waypoint(2) + s(i)*endPos(2);     % Points in z
+            x(3,i) = (1-s(i))*waypoint(3) + s(i)*endPos(3);     % Points in z
+        end
         theta(1,i) = (1-s(i))*startRPY(1) + s(i)*endRPY(1); % Roll angle 
-        theta(2,i) = (1-s(i))*startRPY(2) + s(i)*endRPY(2); % Pitch angle
+        theta(2,i) = (1-s(i))*startRPY(3) + s(i)*endRPY(2); % Pitch angle
         theta(3,i) = (1-s(i))*startRPY(3) + s(i)*endRPY(3); % Yaw angle
     end
  
     T = [rpy2r(theta(1,1),theta(2,1),theta(3,1)) x(:,1);zeros(1,3) 1];     % Create transformation of first point and angle
-    q0 = [-1 0.5 1 1 0 0 -pi/2];                                             % Initial guess for joint angles
+     q0 = [0 0.5 0 1 0 0 -pi/2];                                             % Initial guess for joint angles
+%      q0 = cyton.ikcon(transl(startPos));
     qMatrix(1,:) = cyton.ikcon(T,q0);                                      % Solve joint angles to achieve first waypoint
 
     for i = 1:steps-1
@@ -58,4 +70,5 @@ function qMatrix = RMRS(cyton, startPos, endPos, startRPY, endRPY)
         qMatrix(i+1,:) = qMatrix(i,:) + deltaT*qdot(i,:);                  % Update next joint state based on joint velocities
     end
     plot3(x(1,:),x(2,:),x(3,:),'k.','LineWidth',1)
+    hold on;
 end
