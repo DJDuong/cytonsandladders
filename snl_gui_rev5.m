@@ -615,56 +615,6 @@ global joint5;
 global joint6;
 global joint7;
 boardValue
-    % This is where the trajectory planning should occur.
-    if realRobot == 1
-        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
-        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
-        stateSub = rossubscriber('/joint_states');
-        receive(stateSub,2)
-        msg = stateSub.LatestMessage;
-        currentJointAngles = msg.Position;
-        qCurrent = currentJointAngles(1:7);
-        trCurrent = robot.model.fkine(qCurrent);
-        cellXYZCurrent = trCurrent(1:3,4)';
-        cellRPYCurrent = tr2rpy(trCurrent);    
-        % Setting values and sending to the robot
-        startPos = cellXYZCurrent;
-        endPos = boardXYZMatrix(boardValue,:)
-        startRPY = cellRPYCurrent;
-        endRPY = boardRPYMatrix(boardValue,:)
-        qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
-        robot.model.plot(qMatrix);
-        areal = 1; % acceleration, doesnt do anything...
-        vreal = 1; % velocity slowest to fastest = 0 to 1.
-
-        cute_multi_joint_msg.Vel = vreal;
-        cute_multi_joint_msg.Acc = areal;
-        [rows,columns] = size(qMatrix);
-        for i = 1:rows
-            while eStop == 1
-            drawnow;
-            end
-            cute_multi_joint_msg.JointStates = qMatrix(i,:);
-            cute_multi_joint_client.call(cute_multi_joint_msg);
-            joint1 = deg2rad(qMatrix(i,1))
-            joint2 = deg2rad(qMatrix(i,2))
-            joint3 = deg2rad(qMatrix(i,3))
-            joint4 = deg2rad(qMatrix(i,4))
-            joint5 = deg2rad(qMatrix(i,5))
-            joint6 = deg2rad(qMatrix(i,6))
-            joint7 = deg2rad(qMatrix(i,7))
-            handles.Joint1Box.String = joint1; %for edit box
-            handles.Joint2Box.String = joint2; %for edit box
-            handles.Joint3Box.String = joint3; %for edit box
-            handles.Joint4Box.String = joint4; %for edit box
-            handles.Joint5Box.String = joint5; %for edit box
-            handles.Joint6Box.String = joint6; %for edit box
-            handles.Joint7Box.String = joint7; %for edit box
-        end
-        currentJointAngles = msg.Position;
-        qCurrent = currentJointAngles(1:7);
-
-    else
         qCurrent = robot.model.getpos();
         trCurrent = robot.model.fkine(qCurrent);
         cellXYZCurrent = trCurrent(1:3,4)';
@@ -683,7 +633,256 @@ boardValue
                 while eStop == 1
                     drawnow;
                 end
-                robot.model.plot(qMatrix(i,:))
+                robot.model.plot(qMatrix(i,:));
+                joint1 = deg2rad(qMatrix(i,1));
+                joint2 = deg2rad(qMatrix(i,2));
+                joint3 = deg2rad(qMatrix(i,3));
+                joint4 = deg2rad(qMatrix(i,4));
+                joint5 = deg2rad(qMatrix(i,5));
+                joint6 = deg2rad(qMatrix(i,6));
+                joint7 = deg2rad(qMatrix(i,7));
+                handles.Joint1Box.String = joint1; %for edit box
+                handles.Joint2Box.String = joint2; %for edit box
+                handles.Joint3Box.String = joint3; %for edit box
+                handles.Joint4Box.String = joint4; %for edit box
+                handles.Joint5Box.String = joint5; %for edit box
+                handles.Joint6Box.String = joint6; %for edit box
+                handles.Joint7Box.String = joint7; %for edit box
+            end
+            trCurrent = robot.model.fkine(robot.model.getpos())
+            switch boardValue
+            case 3
+               boardValue = 21
+               handles.ManualPositionValue.String = boardValue
+               trCurrent = robot.model.fkine(qCurrent);
+               cellXYZCurrent = trCurrent(1:3,4)';
+               cellRPYCurrent = tr2rpy(trCurrent);
+               startPos = cellXYZCurrent;
+               endPos = boardXYZMatrix(boardValue,:)
+               startRPY = cellRPYCurrent;
+               endRPY = boardRPYMatrix(boardValue,:)
+               qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                [rows,columns] = size(qMatrix);
+                for i = 1:rows
+                    while eStop == 1
+                    drawnow;
+                    end
+                    robot.model.plot(qMatrix(i,:))
+                    joint1 = deg2rad(qMatrix(i,1))
+                    joint2 = deg2rad(qMatrix(i,2))
+                    joint3 = deg2rad(qMatrix(i,3))
+                    joint4 = deg2rad(qMatrix(i,4))
+                    joint5 = deg2rad(qMatrix(i,5))
+                    joint6 = deg2rad(qMatrix(i,6))
+                    joint7 = deg2rad(qMatrix(i,7))
+                    handles.Joint1Box.String = joint1; %for edit box
+                    handles.Joint2Box.String = joint2; %for edit box
+                    handles.Joint3Box.String = joint3; %for edit box
+                    handles.Joint4Box.String = joint4; %for edit box
+                    handles.Joint5Box.String = joint5; %for edit box
+                    handles.Joint6Box.String = joint6; %for edit box
+                    handles.Joint7Box.String = joint7; %for edit box
+                end
+                qCurrent = robot.model.fkine(robot.model.getpos())
+            case 14
+               boardValue = 27
+               handles.ManualPositionValue.String = boardValue
+               trCurrent = robot.model.fkine(qCurrent);
+               cellXYZCurrent = trCurrent(1:3,4)';
+               cellRPYCurrent = tr2rpy(trCurrent);
+               startPos = cellXYZCurrent;
+               endPos = boardXYZMatrix(boardValue,:)
+               startRPY = cellRPYCurrent;
+               endRPY = boardRPYMatrix(boardValue,:)
+               qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                [rows,columns] = size(qMatrix);
+                for i = 1:rows
+                    while eStop == 1
+                    drawnow;
+                    end
+                    robot.model.plot(qMatrix(i,:))
+                    joint1 = deg2rad(qMatrix(i,1))
+                    joint2 = deg2rad(qMatrix(i,2))
+                    joint3 = deg2rad(qMatrix(i,3))
+                    joint4 = deg2rad(qMatrix(i,4))
+                    joint5 = deg2rad(qMatrix(i,5))
+                    joint6 = deg2rad(qMatrix(i,6))
+                    joint7 = deg2rad(qMatrix(i,7))
+                    handles.Joint1Box.String = joint1; %for edit box
+                    handles.Joint2Box.String = joint2; %for edit box
+                    handles.Joint3Box.String = joint3; %for edit box
+                    handles.Joint4Box.String = joint4; %for edit box
+                    handles.Joint5Box.String = joint5; %for edit box
+                    handles.Joint6Box.String = joint6; %for edit box
+                    handles.Joint7Box.String = joint7; %for edit box
+                end
+                trCurrent = robot.model.fkine(robot.model.getpos())
+            case 18
+               boardValue = 20
+               handles.ManualPositionValue.String = boardValue
+               trCurrent = robot.model.fkine(qCurrent);
+               cellXYZCurrent = trCurrent(1:3,4)';
+               cellRPYCurrent = tr2rpy(trCurrent);
+               startPos = cellXYZCurrent;
+               endPos = boardXYZMatrix(boardValue,:)
+               startRPY = cellRPYCurrent;
+               endRPY = boardRPYMatrix(boardValue,:)
+               qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                [rows,columns] = size(qMatrix);
+                for i = 1:rows
+                    while eStop == 1
+                    drawnow;
+                    end
+                    robot.model.plot(qMatrix(i,:))
+                    joint1 = deg2rad(qMatrix(i,1))
+                    joint2 = deg2rad(qMatrix(i,2))
+                    joint3 = deg2rad(qMatrix(i,3))
+                    joint4 = deg2rad(qMatrix(i,4))
+                    joint5 = deg2rad(qMatrix(i,5))
+                    joint6 = deg2rad(qMatrix(i,6))
+                    joint7 = deg2rad(qMatrix(i,7))
+                    handles.Joint1Box.String = joint1; %for edit box
+                    handles.Joint2Box.String = joint2; %for edit box
+                    handles.Joint3Box.String = joint3; %for edit box
+                    handles.Joint4Box.String = joint4; %for edit box
+                    handles.Joint5Box.String = joint5; %for edit box
+                    handles.Joint6Box.String = joint6; %for edit box
+                    handles.Joint7Box.String = joint7; %for edit box
+                end
+                qCurrent = robot.model.fkine(robot.model.getpos())
+            case 12
+               boardValue = 2
+               handles.ManualPositionValue.String = boardValue
+               trCurrent = robot.model.fkine(qCurrent);
+               cellXYZCurrent = trCurrent(1:3,4)';
+               cellRPYCurrent = tr2rpy(trCurrent);
+               startPos = cellXYZCurrent;
+               endPos = boardXYZMatrix(boardValue,:)
+               startRPY = cellRPYCurrent;
+               endRPY = boardRPYMatrix(boardValue,:)
+               qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+               robot.model.plot(qMatrix);
+                [rows,columns] = size(qMatrix);
+                for i = 1:rows
+                    while eStop == 1
+                    drawnow;
+                    end
+                    robot.model.plot(qMatrix(i,:))
+                    joint1 = deg2rad(qMatrix(i,1))
+                    joint2 = deg2rad(qMatrix(i,2))
+                    joint3 = deg2rad(qMatrix(i,3))
+                    joint4 = deg2rad(qMatrix(i,4))
+                    joint5 = deg2rad(qMatrix(i,5))
+                    joint6 = deg2rad(qMatrix(i,6))
+                    joint7 = deg2rad(qMatrix(i,7))
+                    handles.Joint1Box.String = joint1; %for edit box
+                    handles.Joint2Box.String = joint2; %for edit box
+                    handles.Joint3Box.String = joint3; %for edit box
+                    handles.Joint4Box.String = joint4; %for edit box
+                    handles.Joint5Box.String = joint5; %for edit box
+                    handles.Joint6Box.String = joint6; %for edit box
+                    handles.Joint7Box.String = joint7; %for edit box
+                end
+                qCurrent = robot.model.fkine(robot.model.getpos())
+            case 26
+               boardValue = 13
+               handles.ManualPositionValue.String = boardValue
+               trCurrent = robot.model.fkine(qCurrent);
+               cellXYZCurrent = trCurrent(1:3,4)';
+               cellRPYCurrent = tr2rpy(trCurrent);
+               startPos = cellXYZCurrent;
+               endPos = boardXYZMatrix(boardValue,:)
+               startRPY = cellRPYCurrent;
+               endRPY = boardRPYMatrix(boardValue,:)
+               qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+               robot.model.plot(qMatrix);
+                [rows,columns] = size(qMatrix);
+                for i = 1:rows
+                    while eStop == 1
+                    drawnow;
+                    end
+                    robot.model.plot(qMatrix(i,:))
+                    joint1 = deg2rad(qMatrix(i,1))
+                    joint2 = deg2rad(qMatrix(i,2))
+                    joint3 = deg2rad(qMatrix(i,3))
+                    joint4 = deg2rad(qMatrix(i,4))
+                    joint5 = deg2rad(qMatrix(i,5))
+                    joint6 = deg2rad(qMatrix(i,6))
+                    joint7 = deg2rad(qMatrix(i,7))
+                    handles.Joint1Box.String = joint1; %for edit box
+                    handles.Joint2Box.String = joint2; %for edit box
+                    handles.Joint3Box.String = joint3; %for edit box
+                    handles.Joint4Box.String = joint4; %for edit box
+                    handles.Joint5Box.String = joint5; %for edit box
+                    handles.Joint6Box.String = joint6; %for edit box
+                    handles.Joint7Box.String = joint7; %for edit box
+                end
+                qCurrent = robot.model.fkine(robot.model.getpos())
+            case 29
+               boardValue = 5
+               handles.ManualPositionValue.String = boardValue
+               trCurrent = robot.model.fkine(qCurrent);
+               cellXYZCurrent = trCurrent(1:3,4)';
+               cellRPYCurrent = tr2rpy(trCurrent);
+               startPos = cellXYZCurrent;
+               endPos = boardXYZMatrix(boardValue,:)
+               startRPY = cellRPYCurrent;
+               endRPY = boardRPYMatrix(boardValue,:)
+               qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+               robot.model.plot(qMatrix);
+                [rows,columns] = size(qMatrix);
+                for i = 1:rows
+                    while eStop == 1
+                    drawnow;
+                    end
+                    robot.model.plot(qMatrix(i,:))
+                    joint1 = deg2rad(qMatrix(i,1))
+                    joint2 = deg2rad(qMatrix(i,2))
+                    joint3 = deg2rad(qMatrix(i,3))
+                    joint4 = deg2rad(qMatrix(i,4))
+                    joint5 = deg2rad(qMatrix(i,5))
+                    joint6 = deg2rad(qMatrix(i,6))
+                    joint7 = deg2rad(qMatrix(i,7))
+                    handles.Joint1Box.String = joint1; %for edit box
+                    handles.Joint2Box.String = joint2; %for edit box
+                    handles.Joint3Box.String = joint3; %for edit box
+                    handles.Joint4Box.String = joint4; %for edit box
+                    handles.Joint5Box.String = joint5; %for edit box
+                    handles.Joint6Box.String = joint6; %for edit box
+                    handles.Joint7Box.String = joint7; %for edit box
+                end
+                qCurrent = robot.model.fkine(robot.model.getpos())
+            end
+            if realRobot == 1
+            cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+            cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+            stateSub = rossubscriber('/joint_states');
+            receive(stateSub,2)
+            msg = stateSub.LatestMessage;
+            currentJointAngles = msg.Position;
+            qCurrent = currentJointAngles(1:7);
+            trCurrent = robot.model.fkine(qCurrent);
+            cellXYZCurrent = trCurrent(1:3,4)';
+            cellRPYCurrent = tr2rpy(trCurrent);    
+            % Setting values and sending to the robot
+            startPos = cellXYZCurrent;
+            endPos = boardXYZMatrix(boardValue,:)
+            startRPY = cellRPYCurrent;
+            endRPY = boardRPYMatrix(boardValue,:)
+            qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+            robot.model.plot(qMatrix);
+            areal = 1; % acceleration, doesnt do anything...
+            vreal = 1; % velocity slowest to fastest = 0 to 1.
+
+            cute_multi_joint_msg.Vel = vreal;
+            cute_multi_joint_msg.Acc = areal;
+            [rows,columns] = size(qMatrix);
+            for i = 1:rows
+                while eStop == 1
+                drawnow;
+                end
+                cute_multi_joint_msg.JointStates = qMatrix(i,:);
+                cute_multi_joint_client.call(cute_multi_joint_msg);
                 joint1 = deg2rad(qMatrix(i,1))
                 joint2 = deg2rad(qMatrix(i,2))
                 joint3 = deg2rad(qMatrix(i,3))
@@ -699,8 +898,255 @@ boardValue
                 handles.Joint6Box.String = joint6; %for edit box
                 handles.Joint7Box.String = joint7; %for edit box
             end
-        qCurrent = robot.model.fkine(robot.model.getpos());
+            currentJointAngles = msg.Position;
+            qCurrent = currentJointAngles(1:7);
+            switch boardValue
+                case 3
+                   boardValue = 21
+                   handles.ManualPositionValue.String = boardValue
+                   trCurrent = robot.model.fkine(qCurrent);
+                   cellXYZCurrent = trCurrent(1:3,4)';
+                   cellRPYCurrent = tr2rpy(trCurrent);
+                   startPos = cellXYZCurrent;
+                   endPos = boardXYZMatrix(boardValue,:)
+                   startRPY = cellRPYCurrent;
+                   endRPY = boardRPYMatrix(boardValue,:)
+                   qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                   robot.model.plot(qMatrix);
+                    areal = 1; % acceleration, doesnt do anything...
+                    vreal = 1; % velocity slowest to fastest = 0 to 1.
+                    cute_multi_joint_msg.Vel = vreal;
+                    cute_multi_joint_msg.Acc = areal;
+                    [rows,columns] = size(qMatrix);
+                    for i = 1:rows
+                        while eStop == 1
+                        drawnow;
+                        end
+                        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+                        cute_multi_joint_client.call(cute_multi_joint_msg);
+                        joint1 = deg2rad(qMatrix(i,1))
+                        joint2 = deg2rad(qMatrix(i,2))
+                        joint3 = deg2rad(qMatrix(i,3))
+                        joint4 = deg2rad(qMatrix(i,4))
+                        joint5 = deg2rad(qMatrix(i,5))
+                        joint6 = deg2rad(qMatrix(i,6))
+                        joint7 = deg2rad(qMatrix(i,7))
+                        handles.Joint1Box.String = joint1; %for edit box
+                        handles.Joint2Box.String = joint2; %for edit box
+                        handles.Joint3Box.String = joint3; %for edit box
+                        handles.Joint4Box.String = joint4; %for edit box
+                        handles.Joint5Box.String = joint5; %for edit box
+                        handles.Joint6Box.String = joint6; %for edit box
+                        handles.Joint7Box.String = joint7; %for edit box
+                    end
+                    currentJointAngles = msg.Position;
+                    qCurrent = currentJointAngles(1:7);
+                case 14
+                   boardValue = 27
+                   handles.ManualPositionValue.String = boardValue
+                   trCurrent = robot.model.fkine(qCurrent);
+                   cellXYZCurrent = trCurrent(1:3,4)';
+                   cellRPYCurrent = tr2rpy(trCurrent);
+                   startPos = cellXYZCurrent;
+                   endPos = boardXYZMatrix(boardValue,:)
+                   startRPY = cellRPYCurrent;
+                   endRPY = boardRPYMatrix(boardValue,:)
+                   qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                   robot.model.plot(qMatrix);
+                    areal = 1; % acceleration, doesnt do anything...
+                    vreal = 1; % velocity slowest to fastest = 0 to 1.
 
+                    cute_multi_joint_msg.Vel = vreal;
+                    cute_multi_joint_msg.Acc = areal;
+                    [rows,columns] = size(qMatrix);
+                    for i = 1:rows
+                        while eStop == 1
+                        drawnow;
+                        end
+                        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+                        cute_multi_joint_client.call(cute_multi_joint_msg);
+                        joint1 = deg2rad(qMatrix(i,1))
+                        joint2 = deg2rad(qMatrix(i,2))
+                        joint3 = deg2rad(qMatrix(i,3))
+                        joint4 = deg2rad(qMatrix(i,4))
+                        joint5 = deg2rad(qMatrix(i,5))
+                        joint6 = deg2rad(qMatrix(i,6))
+                        joint7 = deg2rad(qMatrix(i,7))
+                        handles.Joint1Box.String = joint1; %for edit box
+                        handles.Joint2Box.String = joint2; %for edit box
+                        handles.Joint3Box.String = joint3; %for edit box
+                        handles.Joint4Box.String = joint4; %for edit box
+                        handles.Joint5Box.String = joint5; %for edit box
+                        handles.Joint6Box.String = joint6; %for edit box
+                        handles.Joint7Box.String = joint7; %for edit box
+                    end
+                    currentJointAngles = msg.Position;
+                    qCurrent = currentJointAngles(1:7);
+                case 18
+                   boardValue = 20
+                   handles.ManualPositionValue.String = boardValue
+                   trCurrent = robot.model.fkine(qCurrent);
+                   cellXYZCurrent = trCurrent(1:3,4)';
+                   cellRPYCurrent = tr2rpy(trCurrent);
+                   startPos = cellXYZCurrent;
+                   endPos = boardXYZMatrix(boardValue,:)
+                   startRPY = cellRPYCurrent;
+                   endRPY = boardRPYMatrix(boardValue,:)
+                   qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                   robot.model.plot(qMatrix);
+                    areal = 1; % acceleration, doesnt do anything...
+                    vreal = 1; % velocity slowest to fastest = 0 to 1.
+
+                    cute_multi_joint_msg.Vel = vreal;
+                    cute_multi_joint_msg.Acc = areal;
+                    [rows,columns] = size(qMatrix);
+                    for i = 1:rows
+                        while eStop == 1
+                        drawnow;
+                        end
+                        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+                        cute_multi_joint_client.call(cute_multi_joint_msg);
+                        joint1 = deg2rad(qMatrix(i,1))
+                        joint2 = deg2rad(qMatrix(i,2))
+                        joint3 = deg2rad(qMatrix(i,3))
+                        joint4 = deg2rad(qMatrix(i,4))
+                        joint5 = deg2rad(qMatrix(i,5))
+                        joint6 = deg2rad(qMatrix(i,6))
+                        joint7 = deg2rad(qMatrix(i,7))
+                        handles.Joint1Box.String = joint1; %for edit box
+                        handles.Joint2Box.String = joint2; %for edit box
+                        handles.Joint3Box.String = joint3; %for edit box
+                        handles.Joint4Box.String = joint4; %for edit box
+                        handles.Joint5Box.String = joint5; %for edit box
+                        handles.Joint6Box.String = joint6; %for edit box
+                        handles.Joint7Box.String = joint7; %for edit box
+                    end
+                    currentJointAngles = msg.Position;
+                    qCurrent = currentJointAngles(1:7);
+                case 12
+                   boardValue = 2
+                   handles.ManualPositionValue.String = boardValue
+                   trCurrent = robot.model.fkine(qCurrent);
+                   cellXYZCurrent = trCurrent(1:3,4)';
+                   cellRPYCurrent = tr2rpy(trCurrent);
+                   startPos = cellXYZCurrent;
+                   endPos = boardXYZMatrix(boardValue,:)
+                   startRPY = cellRPYCurrent;
+                   endRPY = boardRPYMatrix(boardValue,:)
+                   qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                   robot.model.plot(qMatrix);
+                    areal = 1; % acceleration, doesnt do anything...
+                    vreal = 1; % velocity slowest to fastest = 0 to 1.
+
+                    cute_multi_joint_msg.Vel = vreal;
+                    cute_multi_joint_msg.Acc = areal;
+                    [rows,columns] = size(qMatrix);
+                    for i = 1:rows
+                        while eStop == 1
+                        drawnow;
+                        end
+                        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+                        cute_multi_joint_client.call(cute_multi_joint_msg);
+                        joint1 = deg2rad(qMatrix(i,1))
+                        joint2 = deg2rad(qMatrix(i,2))
+                        joint3 = deg2rad(qMatrix(i,3))
+                        joint4 = deg2rad(qMatrix(i,4))
+                        joint5 = deg2rad(qMatrix(i,5))
+                        joint6 = deg2rad(qMatrix(i,6))
+                        joint7 = deg2rad(qMatrix(i,7))
+                        handles.Joint1Box.String = joint1; %for edit box
+                        handles.Joint2Box.String = joint2; %for edit box
+                        handles.Joint3Box.String = joint3; %for edit box
+                        handles.Joint4Box.String = joint4; %for edit box
+                        handles.Joint5Box.String = joint5; %for edit box
+                        handles.Joint6Box.String = joint6; %for edit box
+                        handles.Joint7Box.String = joint7; %for edit box
+                    end
+                    currentJointAngles = msg.Position;
+                    qCurrent = currentJointAngles(1:7);
+                case 26
+                   boardValue = 13
+                   handles.ManualPositionValue.String = boardValue
+                   trCurrent = robot.model.fkine(qCurrent);
+                   cellXYZCurrent = trCurrent(1:3,4)';
+                   cellRPYCurrent = tr2rpy(trCurrent);
+                   startPos = cellXYZCurrent;
+                   endPos = boardXYZMatrix(boardValue,:)
+                   startRPY = cellRPYCurrent;
+                   endRPY = boardRPYMatrix(boardValue,:)
+                   qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                   robot.model.plot(qMatrix);
+                    areal = 1; % acceleration, doesnt do anything...
+                    vreal = 1; % velocity slowest to fastest = 0 to 1.
+
+                    cute_multi_joint_msg.Vel = vreal;
+                    cute_multi_joint_msg.Acc = areal;
+                    [rows,columns] = size(qMatrix);
+                    for i = 1:rows
+                        while eStop == 1
+                        drawnow;
+                        end
+                        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+                        cute_multi_joint_client.call(cute_multi_joint_msg);
+                        joint1 = deg2rad(qMatrix(i,1))
+                        joint2 = deg2rad(qMatrix(i,2))
+                        joint3 = deg2rad(qMatrix(i,3))
+                        joint4 = deg2rad(qMatrix(i,4))
+                        joint5 = deg2rad(qMatrix(i,5))
+                        joint6 = deg2rad(qMatrix(i,6))
+                        joint7 = deg2rad(qMatrix(i,7))
+                        handles.Joint1Box.String = joint1; %for edit box
+                        handles.Joint2Box.String = joint2; %for edit box
+                        handles.Joint3Box.String = joint3; %for edit box
+                        handles.Joint4Box.String = joint4; %for edit box
+                        handles.Joint5Box.String = joint5; %for edit box
+                        handles.Joint6Box.String = joint6; %for edit box
+                        handles.Joint7Box.String = joint7; %for edit box
+                    end
+                    currentJointAngles = msg.Position;
+                    qCurrent = currentJointAngles(1:7);
+                case 29
+                   boardValue = 5
+                   handles.ManualPositionValue.String = boardValue
+                   trCurrent = robot.model.fkine(qCurrent);
+                   cellXYZCurrent = trCurrent(1:3,4)';
+                   cellRPYCurrent = tr2rpy(trCurrent);
+                   startPos = cellXYZCurrent;
+                   endPos = boardXYZMatrix(boardValue,:)
+                   startRPY = cellRPYCurrent;
+                   endRPY = boardRPYMatrix(boardValue,:)
+                   qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+                   robot.model.plot(qMatrix);
+                    areal = 1; % acceleration, doesnt do anything...
+                    vreal = 1; % velocity slowest to fastest = 0 to 1.
+
+                    cute_multi_joint_msg.Vel = vreal;
+                    cute_multi_joint_msg.Acc = areal;
+                    [rows,columns] = size(qMatrix);
+                    for i = 1:rows
+                        while eStop == 1
+                        drawnow;
+                        end
+                        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+                        cute_multi_joint_client.call(cute_multi_joint_msg);
+                        joint1 = deg2rad(qMatrix(i,1))
+                        joint2 = deg2rad(qMatrix(i,2))
+                        joint3 = deg2rad(qMatrix(i,3))
+                        joint4 = deg2rad(qMatrix(i,4))
+                        joint5 = deg2rad(qMatrix(i,5))
+                        joint6 = deg2rad(qMatrix(i,6))
+                        joint7 = deg2rad(qMatrix(i,7))
+                        handles.Joint1Box.String = joint1; %for edit box
+                        handles.Joint2Box.String = joint2; %for edit box
+                        handles.Joint3Box.String = joint3; %for edit box
+                        handles.Joint4Box.String = joint4; %for edit box
+                        handles.Joint5Box.String = joint5; %for edit box
+                        handles.Joint6Box.String = joint6; %for edit box
+                        handles.Joint7Box.String = joint7; %for edit box
+                    end
+                    currentJointAngles = msg.Position;
+                    qCurrent = currentJointAngles(1:7);
+            end
     end
 
 % --- Executes on button press in Reset.
