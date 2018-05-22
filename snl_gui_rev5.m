@@ -22,7 +22,7 @@ function varargout = snl_gui_rev5(varargin)
 
 % Edit the above text to modify the response to help snl_gui
 
-% Last Modified by GUIDE v2.5 18-May-2018 12:24:20
+% Last Modified by GUIDE v2.5 22-May-2018 19:53:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,21 +57,19 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
     % the gui is made visible
     global robot;
     global realistic;
-    global fps;
-    global scale;
-    global steps;
-    global s;
-    global qZero;
     global eStop;
     global boardValue;
     global boardValueMin;
     global boardValueMax;
     global dieValueMin;
     global dieValueMax;
+    global qCurrent;
     global realRobot;
+    global rosIP;
     %cells to be used in board algorithm.
     %tim, maybe look into creating an array that can map xyz values to the
     %cell locations. there is a map function on matlab.
+    global pitstop;
     global cell1; 
     global cell2; 
     global cell3; 
@@ -102,53 +100,105 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
     global cell28; 
     global cell29; 
     global cell30; 
-    global cellCurrent;
-    global boardMatrix;
-    global boardElement;
-    %matrix used to allow die value to increment element position.
-    boardMatrix = [cell1; cell2; cell3; cell4; cell5; cell6; cell7; cell8;...
-        cell9; cell10; cell11; cell12; cell13; cell14; cell15; cell16;...
-        cell17; cell18; cell19; cell20; cell21; cell22; cell23; cell24;...
-        cell25; cell26; cell27; cell28; cell29; cell30]
+    global boardXYZMatrix;
+    global boardRPYMatrix;
+    global joint1;
+    global joint2;
+    global joint3;
+    global joint4;
+    global joint5;
+    global joint6;
+    global joint7;
+    global joint1Min;
+    global joint1Max;
+    global joint2Min;
+    global joint2Max;
+    global joint3Min;
+    global joint3Max;
+    global joint4Min;
+    global joint4Max;
+    global joint5Min;
+    global joint5Max;
+    global joint6Min;
+    global joint6Max;
+    global joint7Min;
+    global joint7Max;
+
+    
     %testing xyz coordinates assigned to cell1 and cell2.
-    cell1 = [-0.15 0.15 0.2]
-    cell2 = [-0.10 0.15 0.2]
-    cell3 = [-0.05 0.15 0.2]
-    cell4 = [0.00 0.15 0.2]
-    cell5 = [0.05 0.15 0.2]
-    cell6 = [0.10 0.15 0.2]
-    boardElement = 1;
-    cellCurrent = boardMatrix(boardElement,:)
-%     cell3; 
-%     cell4; 
-%     cell5; 
-%     cell6;  
-%     cell7; 
-%     cell8; 
-%     cell9; 
-%     cell10; 
-%     cell11; 
-%     cell12; 
-%     cell13; 
-%     cell14; 
-%     cell15; 
-%     cell16; 
-%     cell18;  
-%     cell19; 
-%     cell20; 
-%     cell21; 
-%     cell22; 
-%     cell23; 
-%     cell24; 
-%     cell25; 
-%     cell26; 
-%     cell27; 
-%     cell28; 
-%     cell29; 
-%     cell30; 
+    cell1 = xlsread('celltransformsyConstant.xlsx', 'B1:E4');
+    cell2 = xlsread('celltransformsyConstant.xlsx', 'B5:E8');
+    cell3 = xlsread('celltransformsyConstant.xlsx', 'B9:E12');
+    cell4 = xlsread('celltransformsyConstant.xlsx', 'B13:E16');
+    cell5 = xlsread('celltransformsyConstant.xlsx', 'B17:E20');
+    cell6 = xlsread('celltransformsyConstant.xlsx', 'B21:E24');
+    cell7 = xlsread('celltransformsyConstant.xlsx', 'B25:E28');
+    cell8 = xlsread('celltransformsyConstant.xlsx', 'B29:E32');
+    cell9 = xlsread('celltransformsyConstant.xlsx', 'B33:E36');
+    cell10 = xlsread('celltransformsyConstant.xlsx', 'B37:E40');
+    cell11 = xlsread('celltransformsyConstant.xlsx', 'B41:E44');
+    cell12 = xlsread('celltransformsyConstant.xlsx', 'B45:E48');
+    cell13 = xlsread('celltransformsyConstant.xlsx', 'B49:E52');
+    cell14 = xlsread('celltransformsyConstant.xlsx', 'B53:E56');
+    cell15 = xlsread('celltransformsyConstant.xlsx', 'B57:E60');
+    cell16 = xlsread('celltransformsyConstant.xlsx', 'B61:E64');
+    cell17 = xlsread('celltransformsyConstant.xlsx', 'B65:E68');
+    cell18 = xlsread('celltransformsyConstant.xlsx', 'B69:E72');
+    cell19 = xlsread('celltransformsyConstant.xlsx', 'B73:E76');
+    cell20 = xlsread('celltransformsyConstant.xlsx', 'B77:E80');
+    cell21 = xlsread('celltransformsyConstant.xlsx', 'B81:E84');
+    cell22 = xlsread('celltransformsyConstant.xlsx', 'B85:E88');
+    cell23 = xlsread('celltransformsyConstant.xlsx', 'B89:E92');
+    cell24 = xlsread('celltransformsyConstant.xlsx', 'B93:E96');
+    cell25 = xlsread('celltransformsyConstant.xlsx', 'B97:E100');
+    cell26 = xlsread('celltransformsyConstant.xlsx', 'B101:E104');
+    cell27 = xlsread('celltransformsyConstant.xlsx', 'B105:E108');
+    cell28 = xlsread('celltransformsyConstant.xlsx', 'B109:E112');
+    cell29 = xlsread('celltransformsyConstant.xlsx', 'B113:E116');
+    cell30 = xlsread('celltransformsyConstant.xlsx', 'B117:E120');
+    %matrix used to allow die value to increment element position.
+    boardXYZMatrix = [cell1(1:3,4)'; cell2(1:3,4)'; cell3(1:3,4)'; cell4(1:3,4)'; ...
+        cell5(1:3,4)'; cell6(1:3,4)'; cell7(1:3,4)'; cell8(1:3,4)';...
+        cell9(1:3,4)'; cell10(1:3,4)'; cell11(1:3,4)'; cell12(1:3,4)';...
+        cell13(1:3,4)'; cell14(1:3,4)'; cell15(1:3,4)'; cell16(1:3,4)';...
+        cell17(1:3,4)'; cell18(1:3,4)'; cell19(1:3,4)'; cell20(1:3,4)';...
+        cell21(1:3,4)'; cell22(1:3,4)'; cell23(1:3,4)'; cell24(1:3,4)';...
+        cell25(1:3,4)'; cell26(1:3,4)'; cell27(1:3,4)'; cell28(1:3,4)';...
+        cell29(1:3,4)'; cell30(1:3,4)']
+    boardRPYMatrix = [tr2rpy(cell1);tr2rpy(cell2);tr2rpy(cell3);tr2rpy(cell4);...
+        tr2rpy(cell5);tr2rpy(cell6);tr2rpy(cell7);tr2rpy(cell8);tr2rpy(cell9);...
+        tr2rpy(cell10);tr2rpy(cell11);tr2rpy(cell12);tr2rpy(cell13);tr2rpy(cell14);...
+        tr2rpy(cell15);tr2rpy(cell16);tr2rpy(cell17);tr2rpy(cell18);tr2rpy(cell19);...
+        tr2rpy(cell20);tr2rpy(cell21);tr2rpy(cell22);tr2rpy(cell23);tr2rpy(cell24);...
+        tr2rpy(cell25);tr2rpy(cell26);tr2rpy(cell27);tr2rpy(cell28);tr2rpy(cell29);...
+        tr2rpy(cell30)]
+    pitstop = [-0.1181 0.3007 -0.1074 1.1351 -0.1733 0.8866 1.7242]
+    joint1 = 0;
+    joint2 = 0;
+    joint3 = 0;
+    joint4 = 0;
+    joint5 = 0;
+    joint6 = 0;
+    joint7 = 0;
+    joint1Min = -150;
+    joint1Max = 150;
+    joint2Min = -105;
+    joint2Max = 105;
+    joint3Min = -150;
+    joint3Max = 150;
+    joint4Min = -105;
+    joint4Max = 105;
+    joint5Min = -105;
+    joint5Max = 105;
+    joint6Min = -105;
+    joint6Max = 105;
+    joint7Min = -150;
+    joint7Max = 150;
+    %starting with robot at cell1
     boardValue = 1;
-    realRobot = 0
-    rosIP = '192.168.0.102'
+    %realRobot = 1 for real robot usage.
+    realRobot = 0;
+    rosIP = '192.168.0.100';
     % Range of dieValue - six faces, 1-6.
     dieValueMin = 1;
     dieValueMax = 6;
@@ -161,31 +211,12 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
     % stopping.
     eStop = 0;
     
-    % realistic variable = 1 - realistic arms, 2 - simple shape arms, 3 - 
-    % stick model arms.
-    realistic = 3;          
+%     % realistic variable = 1 - realistic arms, 2 - simple shape arms, 3 - 
+%     % stick model arms.
+%     realistic = 3;          
     
     % handle for objects cyton class
-    robot = Cyton();         
-    
-    % fps variable that sets the frame rate of the arm plot
-    fps = 25;       
-    
-    % scale of the stick and simple shapes models, kept low to ensure the
-    % realistic plot can be seen
-    scale = 0.3;            
-    
-    % steps variable for number of steps
-    steps = 25;          
-    
-    % trapezoidal trajectory interpolation technique
-    s = lspb(0,1,steps);    
-    
-    % simple zero joint state for non actuated state.
-    qZero = [0 0 0 0 0 0 0];         
-    
-    % show cyton at zero joint angle state
-    robot.model.plot(qZero);
+    robot = Cyton();               
     
     %Tims ply stuff - environment.
     
@@ -198,7 +229,7 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
         % Set up Cyton on the table (screw onto). Connect powersource (socket to
         % cyton).
         % Connect usb from Cyton to Upboard.
-        % Open PuTTy, enter 192.168.0.253 and connect.
+        % Open PuTTy, enter 192.168.0.??? and connect.
         % Username and password is student.
         % Turn on the Cyton and hold the arm up whilst entering- roslaunch cute_bringup cute_bringup.launch
         % If red errors come up, ctrl c and keep retrying until the successful
@@ -231,7 +262,49 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 
         cute_enable_gripper_msg.TorqueEnable = true;% false
         cute_enable_gripper_client.call(cute_enable_gripper_msg);
+        
+        %Moving the robot arm to pitstop state
+        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+        stateSub = rossubscriber('/joint_states');
+        receive(stateSub,2)
+        msg = stateSub.LatestMessage;
+        cute_multi_joint_msg.JointStates = pitstop;
+        cute_multi_joint_client.call(cute_multi_joint_msg);
+        
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
+        joint1 = qCurrent(1)
+        joint2 = qCurrent(2)
+        joint3 = qCurrent(3)
+        joint4 = qCurrent(4)
+        joint5 = qCurrent(5)
+        joint6 = qCurrent(6)
+        joint7 = qCurrent(7)
+        handles.Joint1Box.String = joint1; %for edit box
+        handles.Joint2Box.String = joint2; %for edit box
+        handles.Joint3Box.String = joint3; %for edit box
+        handles.Joint4Box.String = joint4; %for edit box
+        handles.Joint5Box.String = joint5; %for edit box
+        handles.Joint6Box.String = joint6; %for edit box
+        handles.Joint7Box.String = joint7; %for edit box
     else
+            % show cyton at pitstop angle state
+        robot.model.plot(pitstop);
+        qCurrent = robot.model.getpos();
+        joint1 = qCurrent(1)
+        joint2 = qCurrent(2)
+        joint3 = qCurrent(3)
+        joint4 = qCurrent(4)
+        joint5 = qCurrent(5)
+        joint6 = qCurrent(6)
+        handles.Joint1Box.String = joint1; %for edit box
+        handles.Joint2Box.String = joint2; %for edit box
+        handles.Joint3Box.String = joint3; %for edit box
+        handles.Joint4Box.String = joint4; %for edit box
+        handles.Joint5Box.String = joint5; %for edit box
+        handles.Joint6Box.String = joint6; %for edit box
+        handles.Joint7Box.String = joint7; %for edit box
     end
 % ====================ABOVE IS RUN BEFORE GUI APPEARS=====================%
 % Choose default command line output for snl_gui
@@ -420,24 +493,40 @@ global dieValue
 global boardValue;
 global robot;
 global eStop;
-global cellCurrent;
-global boardMatrix;
+global boardXYZMatrix;
+global boardRPYMatrix;
+global qCurrent;
 global realRobot;
-    boardValue
-    boardValue = dieValue + boardValue
-    % This is where the trajectory planning should occur.
-    
+global joint1;
+global joint2;
+global joint3;
+global joint4;
+global joint5;
+global joint6;
+global joint7;
+    boardValue;
+    boardValue = dieValue + boardValue;
+    handles.ManualPositionValue.String = boardValue
+
     % This is where the trajectory operation should occur.
     if realRobot == 1
         cute_multi_joint_client = rossvcclient('/cute_multi_joint');
         cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
-
+        stateSub = rossubscriber('/joint_states');
+        receive(stateSub,2)
+        msg = stateSub.LatestMessage;
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
+        trCurrent = robot.model.fkine(qCurrent);
+        cellXYZCurrent = trCurrent(1:3,4)';
+        cellRPYCurrent = tr2rpy(trCurrent);
         % Setting values and sending to the robot
-        startPos = cellCurrent;
-        endPos = boardMatrix(boardValue,:)
-        rpy = deg2rad([-90 0 0])
-        qMatrix = RMRS(robot.model, startPos, endPos, rpy);
-        robot.model.teach(qMatrix)
+        startPos = cellXYZCurrent;
+        endPos = boardXYZMatrix(boardValue,:)
+        startRPY = cellRPYCurrent;
+        endRPY = boardRPYMatrix(boardValue,:)
+        qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+        robot.model.plot(qMatrix)
         areal = 1; % acceleration, doesnt do anything...
         vreal = 1; % velocity slowest to fastest = 0 to 1.
 
@@ -445,21 +534,38 @@ global realRobot;
         cute_multi_joint_msg.Acc = areal;
         [rows,columns] = size(qMatrix)
         for i = 1:rows
-            i 
             while eStop == 1
             drawnow;
             end
             cute_multi_joint_msg.JointStates = qMatrix(i,:);
             cute_multi_joint_client.call(cute_multi_joint_msg);
+            joint1 = deg2rad(qMatrix(i,1))
+            joint2 = deg2rad(qMatrix(i,2))
+            joint3 = deg2rad(qMatrix(i,3))
+            joint4 = deg2rad(qMatrix(i,4))
+            joint5 = deg2rad(qMatrix(i,5))
+            joint6 = deg2rad(qMatrix(i,6))
+            joint7 = deg2rad(qMatrix(i,7))
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box
         end
-        cellCurrent = boardMatrix(boardValue,:)
-        actualCurrent = robot.model.fkine(robot.model.getpos())
-
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
     else
-        startPos = cellCurrent
-        endPos = boardMatrix(boardValue,:)
-        rpy = deg2rad([-90 0 0])
-        qMatrix = RMRS(robot.model, startPos, endPos, rpy);
+        qCurrent = robot.model.getpos();
+        trCurrent = robot.model.fkine(qCurrent);
+        cellXYZCurrent = trCurrent(1:3,4)';
+        cellRPYCurrent = tr2rpy(trCurrent);
+        startPos = cellXYZCurrent;
+        endPos = boardXYZMatrix(boardValue,:)
+        startRPY = cellRPYCurrent;
+        endRPY = boardRPYMatrix(boardValue,:)
+        qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
         [rows,columns] = size(qMatrix)
             for i = 1:rows
                 % Interrupt While loop that executes upon Emergency Stop toggle
@@ -469,14 +575,24 @@ global realRobot;
                 while eStop == 1
                     drawnow;
                 end
-                i
                 robot.model.plot(qMatrix(i,:))
-                % This is where the trajectory operation should occur.
+                joint1 = deg2rad(qMatrix(i,1))
+                joint2 = deg2rad(qMatrix(i,2))
+                joint3 = deg2rad(qMatrix(i,3))
+                joint4 = deg2rad(qMatrix(i,4))
+                joint5 = deg2rad(qMatrix(i,5))
+                joint6 = deg2rad(qMatrix(i,6))
+                joint7 = deg2rad(qMatrix(i,7))
+                handles.Joint1Box.String = joint1; %for edit box
+                handles.Joint2Box.String = joint2; %for edit box
+                handles.Joint3Box.String = joint3; %for edit box
+                handles.Joint4Box.String = joint4; %for edit box
+                handles.Joint5Box.String = joint5; %for edit box
+                handles.Joint6Box.String = joint6; %for edit box
+                handles.Joint7Box.String = joint7; %for edit box
             end
-        cellCurrent = boardMatrix(boardValue,:)
-        poseCurrent = robot.model.fkine(robot.model.getpos());
-        xyzCurrent = poseCurrent(1:3,4)
-
+        qCurrent = robot.model.fkine(robot.model.getpos());
+       
     end
 
     % --- Executes on button press in MoveByPosition.
@@ -487,44 +603,78 @@ function MoveByPosition_Callback(hObject, eventdata, handles)
 global boardValue;
 global robot;
 global eStop;
-global cellCurrent;
-global boardMatrix;
+global boardXYZMatrix;
+global boardRPYMatrix;
 global realRobot;
-    moveValue = boardValue;
+global qCurrent;
+global joint1;
+global joint2;
+global joint3;
+global joint4;
+global joint5;
+global joint6;
+global joint7;
+boardValue
     % This is where the trajectory planning should occur.
     if realRobot == 1
         cute_multi_joint_client = rossvcclient('/cute_multi_joint');
         cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
-
+        stateSub = rossubscriber('/joint_states');
+        receive(stateSub,2)
+        msg = stateSub.LatestMessage;
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
+        trCurrent = robot.model.fkine(qCurrent);
+        cellXYZCurrent = trCurrent(1:3,4)';
+        cellRPYCurrent = tr2rpy(trCurrent);    
         % Setting values and sending to the robot
-        startPos = cellCurrent;
-        endPos = boardMatrix(boardValue,:)
-        rpy = deg2rad([-90 0 0])
-        qMatrix = RMRS(robot.model, startPos, endPos, rpy);
-        robot.model.teach(qMatrix)
+        startPos = cellXYZCurrent;
+        endPos = boardXYZMatrix(boardValue,:)
+        startRPY = cellRPYCurrent;
+        endRPY = boardRPYMatrix(boardValue,:)
+        qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+        robot.model.plot(qMatrix);
         areal = 1; % acceleration, doesnt do anything...
         vreal = 1; % velocity slowest to fastest = 0 to 1.
 
         cute_multi_joint_msg.Vel = vreal;
         cute_multi_joint_msg.Acc = areal;
-        [rows,columns] = size(qMatrix)
+        [rows,columns] = size(qMatrix);
         for i = 1:rows
-            i 
             while eStop == 1
             drawnow;
             end
             cute_multi_joint_msg.JointStates = qMatrix(i,:);
             cute_multi_joint_client.call(cute_multi_joint_msg);
+            joint1 = deg2rad(qMatrix(i,1))
+            joint2 = deg2rad(qMatrix(i,2))
+            joint3 = deg2rad(qMatrix(i,3))
+            joint4 = deg2rad(qMatrix(i,4))
+            joint5 = deg2rad(qMatrix(i,5))
+            joint6 = deg2rad(qMatrix(i,6))
+            joint7 = deg2rad(qMatrix(i,7))
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box
         end
-        cellCurrent = boardMatrix(boardValue,:)
-        actualCurrent = robot.model.fkine(robot.model.getpos())
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
 
     else
-        startPos = cellCurrent
-        endPos = boardMatrix(boardValue,:)
-        rpy = deg2rad([-90 0 0])
-        qMatrix = RMRS(robot.model, startPos, endPos, rpy);
-        [rows,columns] = size(qMatrix)
+        qCurrent = robot.model.getpos();
+        trCurrent = robot.model.fkine(qCurrent);
+        cellXYZCurrent = trCurrent(1:3,4)';
+        cellRPYCurrent = tr2rpy(trCurrent);
+        startPos = cellXYZCurrent
+        endPos = boardXYZMatrix(boardValue,:)
+        startRPY = cellRPYCurrent
+        endRPY = boardRPYMatrix(boardValue,:)
+        qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+        [rows,columns] = size(qMatrix);
             for i = 1:rows
                 % Interrupt While loop that executes upon Emergency Stop toggle
                 % button being pressed. the drawnow allows interruption, and once
@@ -533,12 +683,24 @@ global realRobot;
                 while eStop == 1
                     drawnow;
                 end
-                i
                 robot.model.plot(qMatrix(i,:))
-                % This is where the trajectory operation should occur.
+                joint1 = deg2rad(qMatrix(i,1))
+                joint2 = deg2rad(qMatrix(i,2))
+                joint3 = deg2rad(qMatrix(i,3))
+                joint4 = deg2rad(qMatrix(i,4))
+                joint5 = deg2rad(qMatrix(i,5))
+                joint6 = deg2rad(qMatrix(i,6))
+                joint7 = deg2rad(qMatrix(i,7))
+                handles.Joint1Box.String = joint1; %for edit box
+                handles.Joint2Box.String = joint2; %for edit box
+                handles.Joint3Box.String = joint3; %for edit box
+                handles.Joint4Box.String = joint4; %for edit box
+                handles.Joint5Box.String = joint5; %for edit box
+                handles.Joint6Box.String = joint6; %for edit box
+                handles.Joint7Box.String = joint7; %for edit box
             end
-        cellCurrent = boardMatrix(boardValue,:)
-        actualCurrent = robot.model.fkine(robot.model.getpos())
+        qCurrent = robot.model.fkine(robot.model.getpos());
+
     end
 
 % --- Executes on button press in Reset.
@@ -546,7 +708,29 @@ function Reset_Callback(hObject, eventdata, handles)
 % hObject    handle to Reset (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global boardValue;
+global robot;
+global realRobot;
+global eStop;
+    boardValue = 1;
+    if realRobot == 1
+        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
 
+        % Setting values and sending to the robot
+        areal = 1; % acceleration, doesnt do anything...
+        vreal = 1; % velocity slowest to fastest = 0 to 1.
+
+        cute_multi_joint_msg.Vel = vreal;
+        cute_multi_joint_msg.Acc = areal;
+        while eStop == 1
+        drawnow;
+        end
+        cute_multi_joint_msg.JointStates = [0 0 0 0 0 0 0];
+        cute_multi_joint_client.call(cute_multi_joint_msg);
+    else
+        robot.model.plot([0 0 0 0 0 0 0])
+    end
 % --- Executes on button press in EmergencyStop.
 function EmergencyStop_Callback(hObject, eventdata, handles)
 % hObject    handle to EmergencyStop (see GCBO)
@@ -564,3 +748,921 @@ function axes1_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: place code in OpeningFcn to populate axes1
+
+
+
+function XInput_Callback(hObject, eventdata, handles)
+% hObject    handle to XInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global xInput;
+xInput = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of XInput as text
+%        str2double(get(hObject,'String')) returns contents of XInput as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function XInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to XInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function YInput_Callback(hObject, eventdata, handles)
+% hObject    handle to YInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global yInput;
+yInput = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of YInput as text
+%        str2double(get(hObject,'String')) returns contents of YInput as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function YInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to YInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function ZInput_Callback(hObject, eventdata, handles)
+% hObject    handle to ZInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global zInput;
+zInput = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of ZInput as text
+%        str2double(get(hObject,'String')) returns contents of ZInput as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function ZInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ZInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function RollInput_Callback(hObject, eventdata, handles)
+% hObject    handle to RollInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global rollInput;
+rollInput = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of RollInput as text
+%        str2double(get(hObject,'String')) returns contents of RollInput as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function RollInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to RollInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function PitchInput_Callback(hObject, eventdata, handles)
+% hObject    handle to PitchInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global pitchInput;
+pitchInput = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of PitchInput as text
+%        str2double(get(hObject,'String')) returns contents of PitchInput as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function PitchInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to PitchInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function YawInput_Callback(hObject, eventdata, handles)
+% hObject    handle to YawInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global yawInput;
+yawInput = str2double(get(hObject,'String'));
+% Hints: get(hObject,'String') returns contents of YawInput as text
+%        str2double(get(hObject,'String')) returns contents of YawInput as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function YawInput_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to YawInput (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in CustomCartesian.
+function CustomCartesian_Callback(hObject, eventdata, handles)
+% hObject    handle to CustomCartesian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint1;
+global joint2;
+global joint3;
+global joint4;
+global joint5;
+global joint6;
+global joint7;
+global xInput;
+global yInput;
+global zInput;
+global rollInput;
+global pitchInput;
+global yawInput;
+global robot;
+global eStop;
+global realRobot;
+global qCurrent;
+    xyzNext = [xInput yInput zInput]
+    rpyNext = [rollInput pitchInput yawInput]
+    qCurrent = robot.model.getpos();
+    trCurrent = robot.model.fkine(qCurrent);
+    cellXYZCurrent = trCurrent(1:3,4)';
+    cellRPYCurrent = tr2rpy(trCurrent);
+    startPos = cellXYZCurrent
+    endPos = xyzNext
+    startRPY = cellRPYCurrent
+    endRPY = rpyNext
+    qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+    [rows,columns] = size(qMatrix);
+        for i = 1:rows
+            % Interrupt While loop that executes upon Emergency Stop toggle
+            % button being pressed. the drawnow allows interruption, and once
+            % the Emergency Stop toggle button is depressed, the movement
+            % continues.
+            while eStop == 1
+                drawnow;
+            end
+            robot.model.plot(qMatrix(i,:));
+            joint1 = deg2rad(qMatrix(i,1));
+            joint2 = deg2rad(qMatrix(i,2));
+            joint3 = deg2rad(qMatrix(i,3));
+            joint4 = deg2rad(qMatrix(i,4));
+            joint5 = deg2rad(qMatrix(i,5));
+            joint6 = deg2rad(qMatrix(i,6));
+            joint7 = deg2rad(qMatrix(i,7));
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box
+        end
+    qCurrent = robot.model.fkine(robot.model.getpos())
+    if realRobot == 1
+        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+        stateSub = rossubscriber('/joint_states');
+        receive(stateSub,2)
+        msg = stateSub.LatestMessage;
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
+        trCurrent = robot.model.fkine(qCurrent);
+        cellXYZCurrent = trCurrent(1:3,4)';
+        cellRPYCurrent = tr2rpy(trCurrent);    
+        % Setting values and sending to the robot
+        startPos = cellXYZCurrent;
+        endPos = xyzNext;
+        startRPY = cellRPYCurrent;
+        endRPY = rpyNext;
+        qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+        robot.model.plot(qMatrix);
+        areal = 1; % acceleration, doesnt do anything...
+        vreal = 1; % velocity slowest to fastest = 0 to 1.
+
+        cute_multi_joint_msg.Vel = vreal;
+        cute_multi_joint_msg.Acc = areal;
+        [rows,columns] = size(qMatrix);
+        for i = 1:rows
+            while eStop == 1
+            drawnow;
+            end
+            cute_multi_joint_msg.JointStates = qMatrix(i,:);
+            cute_multi_joint_client.call(cute_multi_joint_msg);
+            joint1 = deg2rad(qMatrix(i,1));
+            joint2 = deg2rad(qMatrix(i,2));
+            joint3 = deg2rad(qMatrix(i,3));
+            joint4 = deg2rad(qMatrix(i,4));
+            joint5 = deg2rad(qMatrix(i,5));
+            joint6 = deg2rad(qMatrix(i,6));
+            joint7 = deg2rad(qMatrix(i,7));
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box
+        end
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
+end
+% --- Executes on slider movement.
+function Joint1_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint1;
+global joint1Min;
+global joint1Max;
+set(hObject, 'min', joint1Min);
+set(hObject, 'max', joint1Max);
+set(hObject, 'SliderStep', [1/(joint1Max-joint1Min) , 10/(joint1Max-joint1Min)]);
+joint1 = get(hObject,'Value')
+handles.Joint1Box.String = joint1; %for edit box
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function Joint2_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint2;
+global joint2Min;
+global joint2Max;
+set(hObject, 'min', joint2Min);
+set(hObject, 'max', joint2Max);
+set(hObject, 'SliderStep', [1/(joint2Max-joint2Min) , 10/(joint2Max-joint2Min)]);
+joint2 = get(hObject,'Value')
+handles.Joint2Box.String = joint2; %for edit box
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function Joint3_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint3;
+global joint3Min;
+global joint3Max;
+set(hObject, 'min', joint3Min);
+set(hObject, 'max', joint3Max);
+set(hObject, 'SliderStep', [1/(joint3Max-joint3Min) , 10/(joint3Max-joint3Min)]);
+joint3 = get(hObject,'Value')
+handles.Joint3Box.String = joint3; %for edit box
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function Joint4_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint4;
+global joint4Min;
+global joint4Max;
+set(hObject, 'min', joint4Min);
+set(hObject, 'max', joint4Max);
+set(hObject, 'SliderStep', [1/(joint4Max-joint4Min) , 10/(joint4Max-joint4Min)]);
+joint4 = get(hObject,'Value')
+handles.Joint4Box.String = joint4; %for edit box
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint4_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function Joint5_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint5;
+global joint5Min;
+global joint5Max;
+set(hObject, 'min', joint5Min);
+set(hObject, 'max', joint5Max);
+set(hObject, 'SliderStep', [1/(joint5Max-joint5Min) , 10/(joint5Max-joint5Min)]);
+joint5 = get(hObject,'Value')
+handles.Joint5Box.String = joint5; %for edit box
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint5_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function Joint6_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint6;
+global joint6Min;
+global joint6Max;
+set(hObject, 'min', joint6Min);
+set(hObject, 'max', joint6Max);
+set(hObject, 'SliderStep', [1/(joint6Max-joint6Min) , 10/(joint6Max-joint6Min)]);
+joint6 = get(hObject,'Value')
+handles.Joint6Box.String = joint6; %for edit box
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint6_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function Joint7_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint7;
+global joint7Min;
+global joint7Max;
+set(hObject, 'min', joint7Min);
+set(hObject, 'max', joint7Max);
+set(hObject, 'SliderStep', [1/(joint7Max-joint7Min) , 10/(joint7Max-joint7Min)]);
+joint7 = get(hObject,'Value')
+handles.Joint7Box.String = joint7; %for edit box
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint7_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint7 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on button press in CustomJoints.
+function CustomJoints_Callback(hObject, eventdata, handles)
+% hObject    handle to CustomJoints (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint1;
+global joint2;
+global joint3;
+global joint4;
+global joint5;
+global joint6;
+global joint7;
+global realRobot;
+global robot;
+global eStop;
+global qCurrent;
+    q = [joint1 joint2 joint3 joint4 joint5 joint6 joint7];
+    trNext = robot.model.fkine(q);
+    xyzNext = trNext(1:3,4)';
+    rpyNext = tr2rpy(trNext);
+    qCurrent = robot.model.getpos();
+    trCurrent = robot.model.fkine(qCurrent);
+    cellXYZCurrent = trCurrent(1:3,4)';
+    cellRPYCurrent = tr2rpy(trCurrent);
+    startPos = cellXYZCurrent;
+    endPos = xyzNext;
+    startRPY = cellRPYCurrent;
+    endRPY = rpyNext;
+    qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+    [rows,columns] = size(qMatrix);
+        for i = 1:rows
+            % Interrupt While loop that executes upon Emergency Stop toggle
+            % button being pressed. the drawnow allows interruption, and once
+            % the Emergency Stop toggle button is depressed, the movement
+            % continues.
+            while eStop == 1
+                drawnow;
+            end
+            robot.model.plot(qMatrix(i,:))
+            joint1 = deg2rad(qMatrix(i,1))
+            joint2 = deg2rad(qMatrix(i,2))
+            joint3 = deg2rad(qMatrix(i,3))
+            joint4 = deg2rad(qMatrix(i,4))
+            joint5 = deg2rad(qMatrix(i,5))
+            joint6 = deg2rad(qMatrix(i,6))
+            joint7 = deg2rad(qMatrix(i,7))
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box
+        end
+    qCurrent = robot.model.fkine(robot.model.getpos());
+    if realRobot == 1
+        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+        stateSub = rossubscriber('/joint_states');
+        receive(stateSub,2)
+        msg = stateSub.LatestMessage;
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
+        trCurrent = robot.model.fkine(qCurrent);
+        cellXYZCurrent = trCurrent(1:3,4)';
+        cellRPYCurrent = tr2rpy(trCurrent);    
+        % Setting values and sending to the robot
+        startPos = cellXYZCurrent;
+        endPos = xyzNext;
+        startRPY = cellRPYCurrent;
+        endRPY = rpyNext;
+        qMatrix = RMRC(robot.model, startPos, endPos, startRPY, endRPY);
+        robot.model.plot(qMatrix);
+        areal = 1; % acceleration, doesnt do anything...
+        vreal = 1; % velocity slowest to fastest = 0 to 1.
+
+        cute_multi_joint_msg.Vel = vreal;
+        cute_multi_joint_msg.Acc = areal;
+        [rows,columns] = size(qMatrix);
+        for i = 1:rows
+            while eStop == 1
+            drawnow;
+            end
+            cute_multi_joint_msg.JointStates = qMatrix(i,:);
+            cute_multi_joint_client.call(cute_multi_joint_msg);
+            joint1 = deg2rad(qMatrix(i,1))
+            joint2 = deg2rad(qMatrix(i,2))
+            joint3 = deg2rad(qMatrix(i,3))
+            joint4 = deg2rad(qMatrix(i,4))
+            joint5 = deg2rad(qMatrix(i,5))
+            joint6 = deg2rad(qMatrix(i,6))
+            joint7 = deg2rad(qMatrix(i,7))
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box
+        end
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7);
+end
+
+
+function Joint1Box_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint1Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint1
+global joint1Min
+global joint1Max
+
+    message = sprintf(['Input must be an number, inclusive between ' ...
+            num2str(joint1Min) ' and ' num2str(joint1Max) '. Reset to default value of 0']);
+        
+    % getting the handle object, converting it to a double and setting it to a
+    % temporary board value called manualDieValue.
+    manualjoint = str2double(get(hObject,'String'))
+    % check if the die value entered is anything other than an integer
+    % (when a non-numerical variable gets converted to a double, it becomes
+    % nan - not a number. isnan detects this.)
+    if isnan(manualjoint)
+        uiwait(warndlg(message));
+        handles.ManualPositionValue.String = '0';
+        joint1 = 0;
+        return;
+    end
+    % check if the joint angle entered is a number outside of the joint
+    % limits
+    if (manualjoint < joint1Min || joint1Max < manualjoint) 
+       uiwait(warndlg(message));
+       handles.ManualPositionValue.String = '0';
+       joint1 = 0;
+       return;
+    end
+    % setting the global variable for joint angle to the entered joint angle.
+    joint1 = deg2rad(manualjoint)
+% Hints: get(hObject,'String') returns contents of Joint1Box as text
+%        str2double(get(hObject,'String')) returns contents of Joint1Box as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint1Box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint1Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Joint2Box_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint2Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint2
+global joint2Min
+global joint2Max
+
+    message = sprintf(['Input must be an number, inclusive between ' ...
+            num2str(joint2Min) ' and ' num2str(joint2Max) '. Reset to default value of 0']);
+        
+    % getting the handle object, converting it to a double and setting it to a
+    % temporary board value called manualDieValue.
+    manualjoint = str2double(get(hObject,'String'))
+    % check if the die value entered is anything other than an integer
+    % (when a non-numerical variable gets converted to a double, it becomes
+    % nan - not a number. isnan detects this.)
+    if isnan(manualjoint)
+        uiwait(warndlg(message));
+        handles.ManualPositionValue.String = '0';
+        joint2 = 0;
+        return;
+    end
+    % check if the joint angle entered is a number outside of the joint
+    % limits
+    if (manualjoint < joint2Min || joint2Max < manualjoint) 
+       uiwait(warndlg(message));
+       handles.ManualPositionValue.String = '0';
+       joint2 = 0;
+       return;
+    end
+    % setting the global variable for joint angle to the entered joint angle.
+    joint2 = deg2rad(manualjoint)
+% Hints: get(hObject,'String') returns contents of Joint2Box as text
+%        str2double(get(hObject,'String')) returns contents of Joint2Box as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint2Box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint2Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Joint3Box_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint3Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint3
+global joint3Min
+global joint3Max
+
+    message = sprintf(['Input must be an number, inclusive between ' ...
+            num2str(joint3Min) ' and ' num2str(joint3Max) '. Reset to default value of 0']);
+        
+    % getting the handle object, converting it to a double and setting it to a
+    % temporary board value called manualDieValue.
+    manualjoint = str2double(get(hObject,'String'))
+    % check if the die value entered is anything other than an integer
+    % (when a non-numerical variable gets converted to a double, it becomes
+    % nan - not a number. isnan detects this.)
+    if isnan(manualjoint)
+        uiwait(warndlg(message));
+        handles.ManualPositionValue.String = '0';
+        joint3 = 0;
+        return;
+    end
+    % check if the joint angle entered is a number outside of the joint
+    % limits
+    if (manualjoint < joint3Min || joint3Max < manualjoint) 
+       uiwait(warndlg(message));
+       handles.ManualPositionValue.String = '0';
+       joint3 = 0;
+       return;
+    end
+    % setting the global variable for joint angle to the entered joint angle.
+    joint3 = deg2rad(manualjoint)
+% Hints: get(hObject,'String') returns contents of Joint3Box as text
+%        str2double(get(hObject,'String')) returns contents of Joint3Box as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint3Box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint3Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Joint4Box_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint4Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint4
+global joint4Min
+global joint4Max
+
+    message = sprintf(['Input must be an number, inclusive between ' ...
+            num2str(joint4Min) ' and ' num2str(joint4Max) '. Reset to default value of 0']);
+        
+    % getting the handle object, converting it to a double and setting it to a
+    % temporary board value called manualDieValue.
+    manualjoint = str2double(get(hObject,'String'))
+    % check if the die value entered is anything other than an integer
+    % (when a non-numerical variable gets converted to a double, it becomes
+    % nan - not a number. isnan detects this.)
+    if isnan(manualjoint)
+        uiwait(warndlg(message));
+        handles.ManualPositionValue.String = '0';
+        joint4 = 0;
+        return;
+    end
+    % check if the joint angle entered is a number outside of the joint
+    % limits
+    if (manualjoint < joint4Min || joint4Max < manualjoint) 
+       uiwait(warndlg(message));
+       handles.ManualPositionValue.String = '0';
+       joint4 = 0;
+       return;
+    end
+    % setting the global variable for joint angle to the entered joint angle.
+    joint4 = deg2rad(manualjoint)
+% Hints: get(hObject,'String') returns contents of Joint4Box as text
+%        str2double(get(hObject,'String')) returns contents of Joint4Box as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint4Box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint4Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Joint5Box_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint5Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint5
+global joint5Min
+global joint5Max
+
+    message = sprintf(['Input must be an number, inclusive between ' ...
+            num2str(joint5Min) ' and ' num2str(joint5Max) '. Reset to default value of 0']);
+        
+    % getting the handle object, converting it to a double and setting it to a
+    % temporary board value called manualDieValue.
+    manualjoint = str2double(get(hObject,'String'))
+    % check if the die value entered is anything other than an integer
+    % (when a non-numerical variable gets converted to a double, it becomes
+    % nan - not a number. isnan detects this.)
+    if isnan(manualjoint)
+        uiwait(warndlg(message));
+        handles.ManualPositionValue.String = '0';
+        joint5 = 0;
+        return;
+    end
+    % check if the joint angle entered is a number outside of the joint
+    % limits
+    if (manualjoint < joint5Min || joint5Max < manualjoint) 
+       uiwait(warndlg(message));
+       handles.ManualPositionValue.String = '0';
+       joint5 = 0;
+       return;
+    end
+    % setting the global variable for joint angle to the entered joint angle.
+    joint5 = deg2rad(manualjoint)
+% Hints: get(hObject,'String') returns contents of Joint5Box as text
+%        str2double(get(hObject,'String')) returns contents of Joint5Box as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint5Box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint5Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Joint6Box_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint6Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint6
+global joint6Min
+global joint6Max
+
+    message = sprintf(['Input must be an number, inclusive between ' ...
+            num2str(joint6Min) ' and ' num2str(joint6Max) '. Reset to default value of 0']);
+        
+    % getting the handle object, converting it to a double and setting it to a
+    % temporary board value called manualDieValue.
+    manualjoint = str2double(get(hObject,'String'))
+    % check if the die value entered is anything other than an integer
+    % (when a non-numerical variable gets converted to a double, it becomes
+    % nan - not a number. isnan detects this.)
+    if isnan(manualjoint)
+        uiwait(warndlg(message));
+        handles.ManualPositionValue.String = '0';
+        joint6 = 0;
+        return;
+    end
+    % check if the joint angle entered is a number outside of the joint
+    % limits
+    if (manualjoint < joint6Min || joint6Max < manualjoint) 
+       uiwait(warndlg(message));
+       handles.ManualPositionValue.String = '0';
+       joint6 = 0;
+       return;
+    end
+    % setting the global variable for joint angle to the entered joint angle.
+    joint6 = deg2rad(manualjoint)
+% Hints: get(hObject,'String') returns contents of Joint6Box as text
+%        str2double(get(hObject,'String')) returns contents of Joint6Box as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint6Box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint6Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function Joint7Box_Callback(hObject, eventdata, handles)
+% hObject    handle to Joint7Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global joint7
+global joint7Min
+global joint7Max
+
+    message = sprintf(['Input must be an number, inclusive between ' ...
+            num2str(joint7Min) ' and ' num2str(joint7Max) '. Reset to default value of 0']);
+        
+    % getting the handle object, converting it to a double and setting it to a
+    % temporary board value called manualDieValue.
+    manualjoint = str2double(get(hObject,'String'))
+    % check if the die value entered is anything other than an integer
+    % (when a non-numerical variable gets converted to a double, it becomes
+    % nan - not a number. isnan detects this.)
+    if isnan(manualjoint)
+        uiwait(warndlg(message));
+        handles.ManualPositionValue.String = '0';
+        joint7 = 0;
+        return;
+    end
+    % check if the joint angle entered is a number outside of the joint
+    % limits
+    if (manualjoint < joint7Min || joint7Max < manualjoint) 
+       uiwait(warndlg(message));
+       handles.ManualPositionValue.String = '0';
+       joint7 = 0;
+       return;
+    end
+    % setting the global variable for joint angle to the entered joint angle.
+    joint7 = deg2rad(manualjoint)
+% Hints: get(hObject,'String') returns contents of Joint7Box as text
+%        str2double(get(hObject,'String')) returns contents of Joint7Box as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function Joint7Box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to Joint7Box (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
