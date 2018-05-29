@@ -1,7 +1,7 @@
 classdef Cyton < handle
     properties
         model;
-        workspace = [-0.5 0.5 -0.5 0.5 0 1];     
+        workspace = [-1 1 -1 1 -0.1 1];     
     end
     
     methods
@@ -13,14 +13,22 @@ classdef Cyton < handle
         pause(0.001);
         name = ['Cyton_',datestr(now,'yyyymmddTHHMMSSFFF')];
 
-        L1 = Link('d',0.12,'a',0,'alpha',pi/2,'offset', -pi/2,'qlim',[deg2rad(-150),deg2rad(150)]);
+        L1 = Link('d',0.053,'a',0,'alpha',pi/2,'offset', -pi/2,'qlim',[deg2rad(-150),deg2rad(150)]);
         L2 = Link('d',0,'a',0,'alpha',-pi/2,'offset', 0,'qlim',[deg2rad(-105),deg2rad(105)]);
-        L3 = Link('d',0.1408,'a',0,'alpha',pi/2,'offset', 0,'qlim',[deg2rad(-150),deg2rad(150)]);
-        L4 = Link('d',0,'a',0.0718,'alpha',-pi/2,'offset', pi/2,'qlim',[deg2rad(-105),deg2rad(105)]);
-        L5 = Link('d',0,'a',0.1296,'alpha',pi/2,'offset', 0,'qlim',[deg2rad(-105),deg2rad(105)]);
+        L3 = Link('d',0.128,'a',0,'alpha',pi/2,'offset', 0,'qlim',[deg2rad(-150),deg2rad(150)]);
+        L4 = Link('d',0,'a',0.065,'alpha',-pi/2,'offset', pi/2,'qlim',[deg2rad(-105),deg2rad(105)]);
+        L5 = Link('d',0,'a',0.068,'alpha',pi/2,'offset', 0,'qlim',[deg2rad(-105),deg2rad(105)]);
         L6 = Link('d',0,'a',0,'alpha',-pi/2,'offset', -pi/2,'qlim',[deg2rad(-105),deg2rad(105)]);
-        L7 = Link('d',0,'a',0,'alpha',0,'offset', -pi/2,'qlim',[deg2rad(-150),deg2rad(150)]);
+        L7 = Link('d',0.07,'a',0,'alpha',0,'offset', -pi/2,'qlim',[deg2rad(-150),deg2rad(150)]);
 
+%         L1 = Link('d',0.0872,'a',0.00011439,'alpha',pi/2,'offset',pi,'qlim',[deg2rad(-150),deg2rad(150)]);
+%         L2 = Link('d',0,'a',0,'alpha',-pi/2,'offset', 0,'qlim',[deg2rad(-105),deg2rad(105)]);
+%         L3 = Link('d',0.1408,'a',0,'alpha',pi/2,'offset', 0,'qlim',[deg2rad(-150),deg2rad(150)]);
+%         L4 = Link('d',0,'a',0.0718,'alpha',-pi/2,'offset', pi/2,'qlim',[deg2rad(-105),deg2rad(105)]);
+%         L5 = Link('d',0,'a',0.1296,'alpha',pi/2,'offset', 0,'qlim',[deg2rad(-105),deg2rad(105)]);
+%         L6 = Link('d',0,'a',0,'alpha',-pi/2,'offset', -pi/2,'qlim',[deg2rad(-105),deg2rad(105)]);
+%         L7 = Link('d',0,'a',0,'alpha',0,'offset', -pi/2,'qlim',[deg2rad(-150),deg2rad(150)]);
+        
         self.model = SerialLink([L1 L2 L3 L4 L5 L6 L7],'name',name);
         end
         %% PlotAndColourRobot

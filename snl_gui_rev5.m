@@ -22,7 +22,7 @@ function varargout = snl_gui_rev5(varargin)
 
 % Edit the above text to modify the response to help snl_gui
 
-% Last Modified by GUIDE v2.5 27-May-2018 17:36:14
+% Last Modified by GUIDE v2.5 29-May-2018 21:48:42
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -63,7 +63,6 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
     global dieValueMin;
     global dieValueMax;
     global qZero;
-    global qCurrent;
     global realRobot;
     global rosIP;
     %cells to be used in board algorithm.
@@ -77,12 +76,6 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
     global joint5;
     global joint6;
     global joint7;
-    global xInput;
-    global yInput;
-    global zInput;
-    global rollInput;
-    global pitchInput;
-    global yawInput;
     global joint1Min;
     global joint1Max;
     global joint2Min;
@@ -100,31 +93,53 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
     global steps;
     global s;
     global cellMatrix;
-    
-    cellMatrix = xlsread('jointAngles.xlsx')
-    pitstop = [-0.1534 0.8145 -0.0215 2.0678 -0.0215 -1.2855 1.3698]
-    joint1Min = -150;
-    joint1Max = 150;
-    joint2Min = -105;
-    joint2Max = 105;
-    joint3Min = -150;
-    joint3Max = 150;
-    joint4Min = -105;
-    joint4Max = 105;
-    joint5Min = -105;
-    joint5Max = 105;
-    joint6Min = -105;
-    joint6Max = 105;
-    joint7Min = -150;
-    joint7Max = 150;
-    steps = 20;
+    global pickupMatrix;
+    global scale;
+    global gripDie;
+    global gripPiece;
+    global start;
+    global open;
+
+    cellMatrix = xlsread('celljointAngles.xlsx');
+    pickupMatrix = xlsread('pickupjointAngles.xlsx')
+    pitstop = [-0.1534 0.8145 -0.0215 2.0678 -0.0215 -1.2855 1.3698];
+    joint1 = 0;
+    joint2 = 0;
+    joint3 = 0;
+    joint4 = 0;
+    joint5 = 0;
+    joint6 = 0;
+    joint7 = 0;
+    joint1Min = deg2rad(-150);
+    joint1Max = deg2rad(150);
+    joint2Min = deg2rad(-105);
+    joint2Max = deg2rad(105);
+    joint3Min = deg2rad(-150);
+    joint3Max = deg2rad(150);
+    joint4Min = deg2rad(-105);
+    joint4Max = deg2rad(105);
+    joint5Min = deg2rad(-105);
+    joint5Max = deg2rad(105);
+    joint6Min = deg2rad(-105);
+    joint6Max = deg2rad(105);
+    joint7Min = deg2rad(-150);
+    joint7Max = deg2rad(150);
+    steps = 10;
     s = lspb(0,1,steps);
     qZero = [0 0 0 0 0 0 0];
+    scale = 0.1;
+    gripDie = -0.65;
+    gripPiece = -1.3;
+    start = 1;
+    open = 0;
+    
     %starting with robot at cell1
     boardValue = 1;
+    
     %realRobot = 1 for real robot usage.
-    realRobot = 0;
+    realRobot = 1;
     rosIP = '192.168.0.100';
+    
     % Range of dieValue - six faces, 1-6.
     dieValueMin = 1;
     dieValueMax = 6;
@@ -135,114 +150,11 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
     
     % initialise the eStop variable so that the toggle changes it to 1 upon
     % stopping.
-    eStop = 0;
-    
-%     % realistic variable = 1 - realistic arms, 2 - simple shape arms, 3 - 
-%     % stick model arms.
-%     realistic = 3;          
+    eStop = 0;       
     
     % handle for objects cyton class
     robot = Cyton();
-    
-    %Tims ply stuff - environment.
-    [Tri,Pts] = plyread('environment/Cage5.ply','tri');                                    
-   trisurf(Tri,Pts(:,1),Pts(:,2),Pts(:,3));
-   hold on
-   %board
-   [Tri,Pts] = plyread('environment/Board2.ply','tri');                                  
-   trisurf(Tri,Pts(:,1)+0.2075,Pts(:,2)+0.4,Pts(:,3)+0.02);
-   %button
-   [Tri,Pts] = plyread('environment/button.ply','tri');                                  
-   trisurf(Tri,Pts(:,1)-0.2075,Pts(:,2)+0.2,Pts(:,3));
-   camlight;
-    % show cyton at pitstop angle state
-    robot.model.plot(pitstop, 'scale', 0.5);
-    robot.PlotAndColourRobot();
-   
-    if realRobot == 1
-        % Enabling robot movement and gripper
-        % Plug ethernet from modem to laptop.
-        % Plug ethernet from modem to upboard.
-        % Connect upboard powersource (socket to triangular prism ting to upboard)
-        % Set up Cyton on the table (screw onto). Connect powersource (socket to
-        % cyton).
-        % Connect usb from Cyton to Upboard.
-        % Open PuTTy, enter 192.168.0.??? and connect.
-        % Username and password is student.
-        % Turn on the Cyton and hold the arm up whilst entering- roslaunch cute_bringup cute_bringup.launch
-        % If red errors come up, ctrl c and keep retrying until the successful
-        % message appears with no red errors.
-        % Now open up another terminal in PuTTy by right clicking on the window bar and
-        % click duplicate session.
-        % Login with the same username and password again (student).
-        % Enter roslaunch robotics_cyton robotics-sim.launch.
-        % If there are errors, may need to turn off the cyton and retry from the
-        % first step.
-        % If successful and the green text saying You can start planning now! comes
-        % up, run the below setup section, then whichever other section.
-        %Setup Variables
-        rosshutdown;
-        rosinit(rosIP);
-        cute_enable_robot_client = rossvcclient('cute_enable_robot')
-        cute_enable_robot_msg = rosmessage(cute_enable_robot_client);
-
-        %To Enable/Disable the robot; Note: Hold onto the arm when disabling the robot.
-
-        cute_enable_robot_msg.EnableRobot = true; %false
-        cute_enable_robot_client.call(cute_enable_robot_msg);
-        %Enabling Gripper
-        %Setup Variables
-
-        cute_enable_gripper_client = rossvcclient('claw_controller/torque_enable')
-        cute_enable_gripper_msg = rosmessage(cute_enable_gripper_client);
-
-        %To Enable/Disable the gripper
-
-        cute_enable_gripper_msg.TorqueEnable = true;% false
-        cute_enable_gripper_client.call(cute_enable_gripper_msg);
-        
-        %Moving the robot arm to pitstop state
-        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
-        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
-        stateSub = rossubscriber('/joint_states');
-        receive(stateSub,2)
-        msg = stateSub.LatestMessage;
-        cute_multi_joint_msg.JointStates = pitstop;
-        cute_multi_joint_client.call(cute_multi_joint_msg);
-        
-        currentJointAngles = msg.Position;
-        qCurrent = currentJointAngles(1:7);
-        joint1 = qCurrent(1)
-        joint2 = qCurrent(2)
-        joint3 = qCurrent(3)
-        joint4 = qCurrent(4)
-        joint5 = qCurrent(5)
-        joint6 = qCurrent(6)
-        joint7 = qCurrent(7)
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box
-        
-        endeffector = robot.model.fkine(pitstop)
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
-        rollInput = rpyValues(1);
-        pitchInput = rpyValues(2);
-        yawInput = rpyValues(3);
-        handles.XInput.String = xInput; %for edit box
-        handles.YInput.String = yInput; %for edit box
-        handles.ZInput.String = zInput; %for edit box
-        handles.RollInput.String = rollInput; %for edit box
-        handles.PitchInput.String = pitchInput; %for edit box
-        handles.YawInput.String = yawInput; %for edit box
-    else
-    end
+    robot.model.base = transl(0,0,0);
 % ====================ABOVE IS RUN BEFORE GUI APPEARS=====================%
 % Choose default command line output for snl_gui
 handles.output = hObject;
@@ -451,6 +363,7 @@ global s;
     boardValue;
     boardValue = dieValue + boardValue;
     handles.ManualPositionValue.String = boardValue
+    switched = false;
 %get the current joint state of real robot or simulation
 if realRobot ==1
     cute_multi_joint_client = rossvcclient('/cute_multi_joint');
@@ -480,13 +393,13 @@ end
         drawnow;
         end
         robot.model.plot(qMatrix(i,:));
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
         handles.Joint1Box.String = joint1; %for edit box
         handles.Joint2Box.String = joint2; %for edit box
         handles.Joint3Box.String = joint3; %for edit box
@@ -518,13 +431,13 @@ end
         end
         cute_multi_joint_msg.JointStates = qMatrix(i,:);
         cute_multi_joint_client.call(cute_multi_joint_msg);
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
         handles.Joint1Box.String = joint1; %for edit box
         handles.Joint2Box.String = joint2; %for edit box
         handles.Joint3Box.String = joint3; %for edit box
@@ -553,120 +466,128 @@ end
         case 3
             boardValue = 21
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 14
             boardValue = 27
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 18
             boardValue = 20
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 12
             boardValue = 2
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 26
             boardValue = 13
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 29 
-        boardValue = 5
-        handles.ManualPositionValue.String = boardValue
+            boardValue = 5
+            handles.ManualPositionValue.String = boardValue
+            switched = true
     end
     %get the current joint state of real robot or simulation
-if realRobot ==1
-    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
-    cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
-    stateSub = rossubscriber('/joint_states');
-    receive(stateSub,2)
-    msg = stateSub.LatestMessage;
-    currentJointAngles = msg.Position;
-    qCurrent = currentJointAngles(1:7)';
-else
-    qCurrent = robot.model.getpos();
-end
-%get the trajectory
-    for i=1:steps
-        % Use trapezoidal velocity interpolation to find the next joint
-        % angle.
-        qTry = (1-s(i))*qCurrent + s(i)*cellMatrix(boardValue,:);
-        qMatrix(i,:) = qTry;
+if switched == true
+    if realRobot ==1
+        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+        stateSub = rossubscriber('/joint_states');
+        receive(stateSub,2)
+        msg = stateSub.LatestMessage;
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7)';
+    else
+        qCurrent = robot.model.getpos();
     end
-%plot the trajectory in simulation
-    for i=1:steps
-        % Interrupt While loop that executes upon Emergency Stop toggle
-        % button being pressed. the drawnow allows interruption, and once
-        % the Emergency Stop toggle button is depressed, the movement
-        % continues.
-        while eStop == 1
-        drawnow;
-        end
-        robot.model.plot(qMatrix(i,:));
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box 
-        
-        endeffector = robot.model.fkine(qMatrix(i,:))
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
-        rollInput = rpyValues(1);
-        pitchInput = rpyValues(2);
-        yawInput = rpyValues(3);
-        handles.XInput.String = xInput; %for edit box
-        handles.YInput.String = yInput; %for edit box
-        handles.ZInput.String = zInput; %for edit box
-        handles.RollInput.String = rollInput; %for edit box
-        handles.PitchInput.String = pitchInput; %for edit box
-        handles.YawInput.String = yawInput; %for edit box
-    end
-%plot the trajectory in real robot
-    if realRobot == 1
+    %get the trajectory
         for i=1:steps
-        while eStop == 1
-        drawnow;
+            % Use trapezoidal velocity interpolation to find the next joint
+            % angle.
+            qTry = (1-s(i))*qCurrent + s(i)*cellMatrix(boardValue,:);
+            qMatrix(i,:) = qTry;
         end
-        cute_multi_joint_msg.JointStates = qMatrix(i,:);
-        cute_multi_joint_client.call(cute_multi_joint_msg);
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box 
-        
-        endeffector = robot.model.fkine(qMatrix(i,:))
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
-        rollInput = rpyValues(1);
-        pitchInput = rpyValues(2);
-        yawInput = rpyValues(3);
-        handles.XInput.String = xInput; %for edit box
-        handles.YInput.String = yInput; %for edit box
-        handles.ZInput.String = zInput; %for edit box
-        handles.RollInput.String = rollInput; %for edit box
-        handles.PitchInput.String = pitchInput; %for edit box
-        handles.YawInput.String = yawInput; %for edit box
+    %plot the trajectory in simulation
+        for i=1:steps
+            % Interrupt While loop that executes upon Emergency Stop toggle
+            % button being pressed. the drawnow allows interruption, and once
+            % the Emergency Stop toggle button is depressed, the movement
+            % continues.
+            while eStop == 1
+            drawnow;
+            end
+            robot.model.plot(qMatrix(i,:));
+            joint1 = qMatrix(i,1);
+            joint2 = qMatrix(i,2);
+            joint3 = qMatrix(i,3);
+            joint4 = qMatrix(i,4);
+            joint5 = qMatrix(i,5);
+            joint6 = qMatrix(i,6);
+            joint7 = qMatrix(i,7);
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box 
+
+            endeffector = robot.model.fkine(qMatrix(i,:))
+            xInput = endeffector(1,4);
+            yInput = endeffector(2,4);
+            zInput = endeffector(3,4);
+            rpyValues = tr2rpy(endeffector);
+            rollInput = rpyValues(1);
+            pitchInput = rpyValues(2);
+            yawInput = rpyValues(3);
+            handles.XInput.String = xInput; %for edit box
+            handles.YInput.String = yInput; %for edit box
+            handles.ZInput.String = zInput; %for edit box
+            handles.RollInput.String = rollInput; %for edit box
+            handles.PitchInput.String = pitchInput; %for edit box
+            handles.YawInput.String = yawInput; %for edit box
         end
-    end
+    %plot the trajectory in real robot
+        if realRobot == 1
+            for i=1:steps
+            while eStop == 1
+            drawnow;
+            end
+            cute_multi_joint_msg.JointStates = qMatrix(i,:);
+            cute_multi_joint_client.call(cute_multi_joint_msg);
+            joint1 = qMatrix(i,1);
+            joint2 = qMatrix(i,2);
+            joint3 = qMatrix(i,3);
+            joint4 = qMatrix(i,4);
+            joint5 = qMatrix(i,5);
+            joint6 = qMatrix(i,6);
+            joint7 = qMatrix(i,7);
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box 
+
+            endeffector = robot.model.fkine(qMatrix(i,:))
+            xInput = endeffector(1,4);
+            yInput = endeffector(2,4);
+            zInput = endeffector(3,4);
+            rpyValues = tr2rpy(endeffector);
+            rollInput = rpyValues(1);
+            pitchInput = rpyValues(2);
+            yawInput = rpyValues(3);
+            handles.XInput.String = xInput; %for edit box
+            handles.YInput.String = yInput; %for edit box
+            handles.ZInput.String = zInput; %for edit box
+            handles.RollInput.String = rollInput; %for edit box
+            handles.PitchInput.String = pitchInput; %for edit box
+            handles.YawInput.String = yawInput; %for edit box
+            end
+        end
+end
 
     % --- Executes on button press in MoveByPosition.
 function MoveByPosition_Callback(hObject, eventdata, handles)
@@ -692,11 +613,21 @@ global rollInput;
 global pitchInput;
 global yawInput;
 global cellMatrix;
+global pickupMatrix;
 global steps;
 global s;
+global gripPiece;
+global open;
 boardValue
+switched = false;
+
 %get the current joint state of real robot or simulation
-if realRobot ==1
+if realRobot == 1
+    % open the claw
+    cute_claw_publisher = rospublisher('/claw_controller/command');
+    cute_claw_msg = rosmessage(cute_claw_publisher);
+    cute_claw_msg.Data = open; % Values must be between -1.5 (closed) and 0 (open)
+    cute_claw_publisher.send(cute_claw_msg);
     cute_multi_joint_client = rossvcclient('/cute_multi_joint');
     cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
     stateSub = rossubscriber('/joint_states');
@@ -714,6 +645,8 @@ end
         qTry = (1-s(i))*qCurrent + s(i)*cellMatrix(boardValue,:)
         qMatrix(i,:) = qTry;
     end
+%collision check the trajectory
+%put a waitfor() in here
 %plot the trajectory in simulation
     for i=1:steps
         % Interrupt While loop that executes upon Emergency Stop toggle
@@ -724,13 +657,13 @@ end
         drawnow;
         end
         robot.model.plot(qMatrix(i,:));
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
         handles.Joint1Box.String = joint1; %for edit box
         handles.Joint2Box.String = joint2; %for edit box
         handles.Joint3Box.String = joint3; %for edit box
@@ -762,13 +695,13 @@ end
         end
         cute_multi_joint_msg.JointStates = qMatrix(i,:);
         cute_multi_joint_client.call(cute_multi_joint_msg);
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
         handles.Joint1Box.String = joint1; %for edit box
         handles.Joint2Box.String = joint2; %for edit box
         handles.Joint3Box.String = joint3; %for edit box
@@ -793,153 +726,566 @@ end
         handles.YawInput.String = yawInput; %for edit box
         end
     end
+%move to pick up the piece.
+%get the current joint state of real robot or simulation
+%     while eStop == 1
+%     drawnow;
+%     end
+    pickupJointAngles = pickupMatrix(boardValue,:)
+    pullJointAngles = cellMatrix(boardValue,:)
+    robot.model.plot(pickupJointAngles);
+    
+    joint1 = pickupJointAngles(1);
+    joint2 = pickupJointAngles(2);
+    joint3 = pickupJointAngles(3);
+    joint4 = pickupJointAngles(4);
+    joint5 = pickupJointAngles(5);
+    joint6 = pickupJointAngles(6);
+    joint7 = pickupJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pickupJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+    
+    robot.model.plot(pullJointAngles);
+    
+    joint1 = pullJointAngles(1);
+    joint2 = pullJointAngles(2);
+    joint3 = pullJointAngles(3);
+    joint4 = pullJointAngles(4);
+    joint5 = pullJointAngles(5);
+    joint6 = pullJointAngles(6);
+    joint7 = pullJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pullJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+if realRobot == 1
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client); 
+%     while eStop == 1 %"OR" IsCurtain() == false
+%         drawnow;
+%             IsCurtain();
+%     end
+    cute_multi_joint_msg.JointStates = pickupJointAngles;
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+    joint1 = pickupJointAngles(1);
+    joint2 = pickupJointAngles(2);
+    joint3 = pickupJointAngles(3);
+    joint4 = pickupJointAngles(4);
+    joint5 = pickupJointAngles(5);
+    joint6 = pickupJointAngles(6);
+    joint7 = pickupJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pickupJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+    % open the claw
+    cute_claw_publisher = rospublisher('/claw_controller/command');
+    cute_claw_msg = rosmessage(cute_claw_publisher);
+    cute_claw_msg.Data = gripPiece; % Values must be between -1.5 (closed) and 0 (open)
+    cute_claw_publisher.send(cute_claw_msg);
+    
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client); 
+%     while eStop == 1 %"OR" IsCurtain() == false
+%         drawnow;
+%             IsCurtain();
+%     end
+    cute_multi_joint_msg.JointStates = pullJointAngles;
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+    joint1 = pullJointAngles(1);
+    joint2 = pullJointAngles(2);
+    joint3 = pullJointAngles(3);
+    joint4 = pullJointAngles(4);
+    joint5 = pullJointAngles(5);
+    joint6 = pullJointAngles(6);
+    joint7 = pullJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pullJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+else
+end
     switch boardValue
         case 3
             boardValue = 21
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 14
             boardValue = 27
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 18
             boardValue = 20
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 12
             boardValue = 2
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 26
             boardValue = 13
             handles.ManualPositionValue.String = boardValue
+            switched = true
         case 29 
-        boardValue = 5
-        handles.ManualPositionValue.String = boardValue
+            boardValue = 5
+            handles.ManualPositionValue.String = boardValue
+            switched = true
     end
     %get the current joint state of real robot or simulation
-if realRobot ==1
-    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
-    cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
-    stateSub = rossubscriber('/joint_states');
-    receive(stateSub,2)
-    msg = stateSub.LatestMessage;
-    currentJointAngles = msg.Position;
-    qCurrent = currentJointAngles(1:7)';
-else
-    qCurrent = robot.model.getpos();
-end
-%get the trajectory
-    for i=1:steps
-        % Use trapezoidal velocity interpolation to find the next joint
-        % angle.
-        qTry = (1-s(i))*qCurrent + s(i)*cellMatrix(boardValue,:);
-        qMatrix(i,:) = qTry;
+if switched == true
+    if realRobot ==1
+        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+        stateSub = rossubscriber('/joint_states');
+        receive(stateSub,2)
+        msg = stateSub.LatestMessage;
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7)';
+    else
+        qCurrent = robot.model.getpos();
     end
-%plot the trajectory in simulation
-    for i=1:steps
-        % Interrupt While loop that executes upon Emergency Stop toggle
-        % button being pressed. the drawnow allows interruption, and once
-        % the Emergency Stop toggle button is depressed, the movement
-        % continues.
-        while eStop == 1
-        drawnow;
-        end
-        robot.model.plot(qMatrix(i,:));
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box 
-        
-        endeffector = robot.model.fkine(qMatrix(i,:))
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
-        rollInput = rpyValues(1);
-        pitchInput = rpyValues(2);
-        yawInput = rpyValues(3);
-        handles.XInput.String = xInput; %for edit box
-        handles.YInput.String = yInput; %for edit box
-        handles.ZInput.String = zInput; %for edit box
-        handles.RollInput.String = rollInput; %for edit box
-        handles.PitchInput.String = pitchInput; %for edit box
-        handles.YawInput.String = yawInput; %for edit box
-    end
-%plot the trajectory in real robot
-    if realRobot == 1
+    %get the trajectory
         for i=1:steps
-        while eStop == 1
-        drawnow;
+            % Use trapezoidal velocity interpolation to find the next joint
+            % angle.
+            qTry = (1-s(i))*qCurrent + s(i)*cellMatrix(boardValue,:);
+            qMatrix(i,:) = qTry;
         end
-        cute_multi_joint_msg.JointStates = qMatrix(i,:);
-        cute_multi_joint_client.call(cute_multi_joint_msg);
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box 
-        
-        endeffector = robot.model.fkine(qMatrix(i,:))
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
-        rollInput = rpyValues(1);
-        pitchInput = rpyValues(2);
-        yawInput = rpyValues(3);
-        handles.XInput.String = xInput; %for edit box
-        handles.YInput.String = yInput; %for edit box
-        handles.ZInput.String = zInput; %for edit box
-        handles.RollInput.String = rollInput; %for edit box
-        handles.PitchInput.String = pitchInput; %for edit box
-        handles.YawInput.String = yawInput; %for edit box
+    %plot the trajectory in simulation
+        for i=1:steps
+            % Interrupt While loop that executes upon Emergency Stop toggle
+            % button being pressed. the drawnow allows interruption, and once
+            % the Emergency Stop toggle button is depressed, the movement
+            % continues.
+            while eStop == 1
+            drawnow;
+            end
+            robot.model.plot(qMatrix(i,:));
+            joint1 = qMatrix(i,1);
+            joint2 = qMatrix(i,2);
+            joint3 = qMatrix(i,3);
+            joint4 = qMatrix(i,4);
+            joint5 = qMatrix(i,5);
+            joint6 = qMatrix(i,6);
+            joint7 = qMatrix(i,7);
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box 
+
+            endeffector = robot.model.fkine(qMatrix(i,:))
+            xInput = endeffector(1,4);
+            yInput = endeffector(2,4);
+            zInput = endeffector(3,4);
+            rpyValues = tr2rpy(endeffector);
+            rollInput = rpyValues(1);
+            pitchInput = rpyValues(2);
+            yawInput = rpyValues(3);
+            handles.XInput.String = xInput; %for edit box
+            handles.YInput.String = yInput; %for edit box
+            handles.ZInput.String = zInput; %for edit box
+            handles.RollInput.String = rollInput; %for edit box
+            handles.PitchInput.String = pitchInput; %for edit box
+            handles.YawInput.String = yawInput; %for edit box
         end
-    end
+    %plot the trajectory in real robot
+        if realRobot == 1
+            for i=1:steps
+            while eStop == 1
+            drawnow;
+            end
+            cute_multi_joint_msg.JointStates = qMatrix(i,:);
+            cute_multi_joint_client.call(cute_multi_joint_msg);
+            joint1 = qMatrix(i,1);
+            joint2 = qMatrix(i,2);
+            joint3 = qMatrix(i,3);
+            joint4 = qMatrix(i,4);
+            joint5 = qMatrix(i,5);
+            joint6 = qMatrix(i,6);
+            joint7 = qMatrix(i,7);
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box 
+
+            endeffector = robot.model.fkine(qMatrix(i,:))
+            xInput = endeffector(1,4);
+            yInput = endeffector(2,4);
+            zInput = endeffector(3,4);
+            rpyValues = tr2rpy(endeffector);
+            rollInput = rpyValues(1);
+            pitchInput = rpyValues(2);
+            yawInput = rpyValues(3);
+            handles.XInput.String = xInput; %for edit box
+            handles.YInput.String = yInput; %for edit box
+            handles.ZInput.String = zInput; %for edit box
+            handles.RollInput.String = rollInput; %for edit box
+            handles.PitchInput.String = pitchInput; %for edit box
+            handles.YawInput.String = yawInput; %for edit box
+            end
+        end
+    %move to pick up the piece.
+%get the current joint state of real robot or simulation
+%     while eStop == 1
+%     drawnow;
+%     end
+    pickupJointAngles = pickupMatrix(boardValue,:)
+    pullJointAngles = cellMatrix(boardValue,:)
+    robot.model.plot(pickupJointAngles);
+    
+    joint1 = pickupJointAngles(1);
+    joint2 = pickupJointAngles(2);
+    joint3 = pickupJointAngles(3);
+    joint4 = pickupJointAngles(4);
+    joint5 = pickupJointAngles(5);
+    joint6 = pickupJointAngles(6);
+    joint7 = pickupJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pickupJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+    
+    robot.model.plot(pullJointAngles);
+    
+    joint1 = pullJointAngles(1);
+    joint2 = pullJointAngles(2);
+    joint3 = pullJointAngles(3);
+    joint4 = pullJointAngles(4);
+    joint5 = pullJointAngles(5);
+    joint6 = pullJointAngles(6);
+    joint7 = pullJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pullJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+if realRobot == 1
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client); 
+%     while eStop == 1 %"OR" IsCurtain() == false
+%         drawnow;
+%             IsCurtain();
+%     end
+    cute_multi_joint_msg.JointStates = pickupJointAngles;
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+    joint1 = pickupJointAngles(1);
+    joint2 = pickupJointAngles(2);
+    joint3 = pickupJointAngles(3);
+    joint4 = pickupJointAngles(4);
+    joint5 = pickupJointAngles(5);
+    joint6 = pickupJointAngles(6);
+    joint7 = pickupJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pickupJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+    % open the claw
+    cute_claw_publisher = rospublisher('/claw_controller/command');
+    cute_claw_msg = rosmessage(cute_claw_publisher);
+    cute_claw_msg.Data = gripPiece; % Values must be between -1.5 (closed) and 0 (open)
+    cute_claw_publisher.send(cute_claw_msg);
+    
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client); 
+%     while eStop == 1 %"OR" IsCurtain() == false
+%         drawnow;
+%             IsCurtain();
+%     end
+    cute_multi_joint_msg.JointStates = pullJointAngles;
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+    joint1 = pullJointAngles(1);
+    joint2 = pullJointAngles(2);
+    joint3 = pullJointAngles(3);
+    joint4 = pullJointAngles(4);
+    joint5 = pullJointAngles(5);
+    joint6 = pullJointAngles(6);
+    joint7 = pullJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pullJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+else
+end
+end
 
 % --- Executes on button press in Reset.
 function Reset_Callback(hObject, eventdata, handles)
 % hObject    handle to Reset (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global boardValue;
 global robot;
-global realRobot;
 global eStop;
-    boardValue = 1;
-    if realRobot == 1
-        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
-        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+global realRobot;
+global qCurrent;
+global joint1;
+global joint2;
+global joint3;
+global joint4;
+global joint5;
+global joint6;
+global joint7;
+global xInput;
+global yInput;
+global zInput;
+global rollInput;
+global pitchInput;
+global yawInput;
+global pitstop;
+global steps;
+global s;
+%get the current joint state of real robot or simulation
+if realRobot == 1
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+    stateSub = rossubscriber('/joint_states');
+    receive(stateSub,2)
+    msg = stateSub.LatestMessage;
+    currentJointAngles = msg.Position;
+    qCurrent = currentJointAngles(1:7)'
+else
+    qCurrent = robot.model.getpos()
+end
+%get the trajectory
+    for i=1:steps
+        % Use trapezoidal velocity interpolation to find the next joint
+        % angle.
+        qTry = (1-s(i))*qCurrent + s(i)*pitstop
+        qMatrix(i,:) = qTry;
+    end
+%test trajectory for collision
 
-        % Setting values and sending to the robot
-        areal = 1; % acceleration, doesnt do anything...
-        vreal = 1; % velocity slowest to fastest = 0 to 1.
-
-        cute_multi_joint_msg.Vel = vreal;
-        cute_multi_joint_msg.Acc = areal;
+%plot the trajectory in simulation
+    for i=1:steps
+        % Interrupt While loop that executes upon Emergency Stop toggle
+        % button being pressed. the drawnow allows interruption, and once
+        % the Emergency Stop toggle button is depressed, the movement
+        % continues.
         while eStop == 1
         drawnow;
         end
-        cute_multi_joint_msg.JointStates = [0 0 0 0 0 0 0];
-        cute_multi_joint_client.call(cute_multi_joint_msg);
-    else
-        robot.model.plot([0 0 0 0 0 0 0])
+        robot.model.plot(qMatrix(i,:));
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
+        handles.Joint1Box.String = joint1; %for edit box
+        handles.Joint2Box.String = joint2; %for edit box
+        handles.Joint3Box.String = joint3; %for edit box
+        handles.Joint4Box.String = joint4; %for edit box
+        handles.Joint5Box.String = joint5; %for edit box
+        handles.Joint6Box.String = joint6; %for edit box
+        handles.Joint7Box.String = joint7; %for edit box 
+        
+        endeffector = robot.model.fkine(qMatrix(i,:))
+        xInput = endeffector(1,4);
+        yInput = endeffector(2,4);
+        zInput = endeffector(3,4);
+        rpyValues = tr2rpy(endeffector);
+        rollInput = rpyValues(1);
+        pitchInput = rpyValues(2);
+        yawInput = rpyValues(3);
+        handles.XInput.String = xInput; %for edit box
+        handles.YInput.String = yInput; %for edit box
+        handles.ZInput.String = zInput; %for edit box
+        handles.RollInput.String = rollInput; %for edit box
+        handles.PitchInput.String = pitchInput; %for edit box
+        handles.YawInput.String = yawInput; %for edit box
     end
+%plot the trajectory in real robot
+    if realRobot == 1
+        for i=1:steps
+        while eStop == 1
+        drawnow;
+        end
+        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+        cute_multi_joint_client.call(cute_multi_joint_msg);
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
+        handles.Joint1Box.String = joint1; %for edit box
+        handles.Joint2Box.String = joint2; %for edit box
+        handles.Joint3Box.String = joint3; %for edit box
+        handles.Joint4Box.String = joint4; %for edit box
+        handles.Joint5Box.String = joint5; %for edit box
+        handles.Joint6Box.String = joint6; %for edit box
+        handles.Joint7Box.String = joint7; %for edit box 
+        
+        endeffector = robot.model.fkine(qMatrix(i,:))
+        xInput = endeffector(1,4);
+        yInput = endeffector(2,4);
+        zInput = endeffector(3,4);
+        rpyValues = tr2rpy(endeffector);
+        rollInput = rpyValues(1);
+        pitchInput = rpyValues(2);
+        yawInput = rpyValues(3);
+        handles.XInput.String = xInput; %for edit box
+        handles.YInput.String = yInput; %for edit box
+        handles.ZInput.String = zInput; %for edit box
+        handles.RollInput.String = rollInput; %for edit box
+        handles.PitchInput.String = pitchInput; %for edit box
+        handles.YawInput.String = yawInput; %for edit box
+        end
+    end
+
+
 % --- Executes on button press in EmergencyStop.
 function EmergencyStop_Callback(hObject, eventdata, handles)
 % hObject    handle to EmergencyStop (see GCBO)
@@ -1153,13 +1499,13 @@ global s;
             drawnow;
             end
             robot.model.plot(qMatrix(i,:));
-            joint1 = deg2rad(qMatrix(i,1));
-            joint2 = deg2rad(qMatrix(i,2));
-            joint3 = deg2rad(qMatrix(i,3));
-            joint4 = deg2rad(qMatrix(i,4));
-            joint5 = deg2rad(qMatrix(i,5));
-            joint6 = deg2rad(qMatrix(i,6));
-            joint7 = deg2rad(qMatrix(i,7));
+            joint1 = qMatrix(i,1);
+            joint2 = qMatrix(i,2);
+            joint3 = qMatrix(i,3);
+            joint4 = qMatrix(i,4);
+            joint5 = qMatrix(i,5);
+            joint6 = qMatrix(i,6);
+            joint7 = qMatrix(i,7);
             handles.Joint1Box.String = joint1; %for edit box
             handles.Joint2Box.String = joint2; %for edit box
             handles.Joint3Box.String = joint3; %for edit box
@@ -1191,13 +1537,13 @@ global s;
             end
             cute_multi_joint_msg.JointStates = qMatrix(i,:);
             cute_multi_joint_client.call(cute_multi_joint_msg);
-            joint1 = deg2rad(qMatrix(i,1));
-            joint2 = deg2rad(qMatrix(i,2));
-            joint3 = deg2rad(qMatrix(i,3));
-            joint4 = deg2rad(qMatrix(i,4));
-            joint5 = deg2rad(qMatrix(i,5));
-            joint6 = deg2rad(qMatrix(i,6));
-            joint7 = deg2rad(qMatrix(i,7));
+            joint1 = qMatrix(i,1);
+            joint2 = qMatrix(i,2);
+            joint3 = qMatrix(i,3);
+            joint4 = qMatrix(i,4);
+            joint5 = qMatrix(i,5);
+            joint6 = qMatrix(i,6);
+            joint7 = qMatrix(i,7);
             handles.Joint1Box.String = joint1; %for edit box
             handles.Joint2Box.String = joint2; %for edit box
             handles.Joint3Box.String = joint3; %for edit box
@@ -1233,7 +1579,7 @@ global joint1Min;
 global joint1Max;
 set(hObject, 'min', joint1Min);
 set(hObject, 'max', joint1Max);
-set(hObject, 'SliderStep', [1/(joint1Max-joint1Min) , 10/(joint1Max-joint1Min)]);
+set(hObject, 'SliderStep', [0.1/(joint1Max-joint1Min) , 1/(joint1Max-joint1Min)]);
 joint1 = get(hObject,'Value')
 handles.Joint1Box.String = joint1; %for edit box
 % Hints: get(hObject,'Value') returns position of slider
@@ -1262,7 +1608,7 @@ global joint2Min;
 global joint2Max;
 set(hObject, 'min', joint2Min);
 set(hObject, 'max', joint2Max);
-set(hObject, 'SliderStep', [1/(joint2Max-joint2Min) , 10/(joint2Max-joint2Min)]);
+set(hObject, 'SliderStep', [0.1/(joint2Max-joint2Min) , 1/(joint2Max-joint2Min)]);
 joint2 = get(hObject,'Value')
 handles.Joint2Box.String = joint2; %for edit box
 
@@ -1292,7 +1638,7 @@ global joint3Min;
 global joint3Max;
 set(hObject, 'min', joint3Min);
 set(hObject, 'max', joint3Max);
-set(hObject, 'SliderStep', [1/(joint3Max-joint3Min) , 10/(joint3Max-joint3Min)]);
+set(hObject, 'SliderStep', [0.1/(joint3Max-joint3Min) , 1/(joint3Max-joint3Min)]);
 joint3 = get(hObject,'Value')
 handles.Joint3Box.String = joint3; %for edit box
 
@@ -1322,7 +1668,7 @@ global joint4Min;
 global joint4Max;
 set(hObject, 'min', joint4Min);
 set(hObject, 'max', joint4Max);
-set(hObject, 'SliderStep', [1/(joint4Max-joint4Min) , 10/(joint4Max-joint4Min)]);
+set(hObject, 'SliderStep', [0.1/(joint4Max-joint4Min) , 1/(joint4Max-joint4Min)]);
 joint4 = get(hObject,'Value')
 handles.Joint4Box.String = joint4; %for edit box
 
@@ -1352,7 +1698,7 @@ global joint5Min;
 global joint5Max;
 set(hObject, 'min', joint5Min);
 set(hObject, 'max', joint5Max);
-set(hObject, 'SliderStep', [1/(joint5Max-joint5Min) , 10/(joint5Max-joint5Min)]);
+set(hObject, 'SliderStep', [0.1/(joint5Max-joint5Min) , 1/(joint5Max-joint5Min)]);
 joint5 = get(hObject,'Value')
 handles.Joint5Box.String = joint5; %for edit box
 
@@ -1382,7 +1728,7 @@ global joint6Min;
 global joint6Max;
 set(hObject, 'min', joint6Min);
 set(hObject, 'max', joint6Max);
-set(hObject, 'SliderStep', [1/(joint6Max-joint6Min) , 10/(joint6Max-joint6Min)]);
+set(hObject, 'SliderStep', [0.1/(joint6Max-joint6Min) , 1/(joint6Max-joint6Min)]);
 joint6 = get(hObject,'Value')
 handles.Joint6Box.String = joint6; %for edit box
 
@@ -1412,7 +1758,7 @@ global joint7Min;
 global joint7Max;
 set(hObject, 'min', joint7Min);
 set(hObject, 'max', joint7Max);
-set(hObject, 'SliderStep', [1/(joint7Max-joint7Min) , 10/(joint7Max-joint7Min)]);
+set(hObject, 'SliderStep', [0.1/(joint7Max-joint7Min) , 1/(joint7Max-joint7Min)]);
 joint7 = get(hObject,'Value')
 handles.Joint7Box.String = joint7; %for edit box
 
@@ -1486,13 +1832,13 @@ end
         drawnow;
         end
         robot.model.plot(qMatrix(i,:));
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
         handles.Joint1Box.String = joint1; %for edit box
         handles.Joint2Box.String = joint2; %for edit box
         handles.Joint3Box.String = joint3; %for edit box
@@ -1524,13 +1870,13 @@ end
         end
         cute_multi_joint_msg.JointStates = qMatrix(i,:);
         cute_multi_joint_client.call(cute_multi_joint_msg);
-        joint1 = deg2rad(qMatrix(i,1));
-        joint2 = deg2rad(qMatrix(i,2));
-        joint3 = deg2rad(qMatrix(i,3));
-        joint4 = deg2rad(qMatrix(i,4));
-        joint5 = deg2rad(qMatrix(i,5));
-        joint6 = deg2rad(qMatrix(i,6));
-        joint7 = deg2rad(qMatrix(i,7));
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
         handles.Joint1Box.String = joint1; %for edit box
         handles.Joint2Box.String = joint2; %for edit box
         handles.Joint3Box.String = joint3; %for edit box
@@ -1589,7 +1935,7 @@ global joint1Max
        return;
     end
     % setting the global variable for joint angle to the entered joint angle.
-    joint1 = deg2rad(manualjoint)
+    joint1 = manualjoint
 % Hints: get(hObject,'String') returns contents of Joint1Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint1Box as a double
 
@@ -1640,7 +1986,7 @@ global joint2Max
        return;
     end
     % setting the global variable for joint angle to the entered joint angle.
-    joint2 = deg2rad(manualjoint)
+    joint2 = manualjoint
 % Hints: get(hObject,'String') returns contents of Joint2Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint2Box as a double
 
@@ -1691,7 +2037,7 @@ global joint3Max
        return;
     end
     % setting the global variable for joint angle to the entered joint angle.
-    joint3 = deg2rad(manualjoint)
+    joint3 = manualjoint
 % Hints: get(hObject,'String') returns contents of Joint3Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint3Box as a double
 
@@ -1742,7 +2088,7 @@ global joint4Max
        return;
     end
     % setting the global variable for joint angle to the entered joint angle.
-    joint4 = deg2rad(manualjoint)
+    joint4 = manualjoint
 % Hints: get(hObject,'String') returns contents of Joint4Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint4Box as a double
 
@@ -1793,7 +2139,7 @@ global joint5Max
        return;
     end
     % setting the global variable for joint angle to the entered joint angle.
-    joint5 = deg2rad(manualjoint)
+    joint5 = manualjoint
 % Hints: get(hObject,'String') returns contents of Joint5Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint5Box as a double
 
@@ -1844,7 +2190,7 @@ global joint6Max
        return;
     end
     % setting the global variable for joint angle to the entered joint angle.
-    joint6 = deg2rad(manualjoint)
+    joint6 = manualjoint
 % Hints: get(hObject,'String') returns contents of Joint6Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint6Box as a double
 
@@ -1895,7 +2241,7 @@ global joint7Max
        return;
     end
     % setting the global variable for joint angle to the entered joint angle.
-    joint7 = deg2rad(manualjoint)
+    joint7 = manualjoint
 % Hints: get(hObject,'String') returns contents of Joint7Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint7Box as a double
 
@@ -1910,4 +2256,777 @@ function Joint7Box_CreateFcn(hObject, eventdata, handles)
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in Initialise.
+function Initialise_Callback(hObject, eventdata, handles)
+% hObject    handle to Initialise (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global robot;
+global eStop;
+global realRobot;
+global qCurrent;
+global joint1;
+global joint2;
+global joint3;
+global joint4;
+global joint5;
+global joint6;
+global joint7;
+global xInput;
+global yInput;
+global zInput;
+global rollInput;
+global pitchInput;
+global yawInput;
+global pitstop;
+global steps;
+global s;
+global scale;
+global qZero;
+global rosIP;
+
+%Tims ply stuff - environment.
+% [Tri,Pts] = plyread('environment/Cage5.ply','tri');                                    
+% trisurf(Tri,Pts(:,1),Pts(:,2),Pts(:,3));
+
+robot.model.base = transl(0,0,0.1185)
+% robot.model.plot(qZero)
+robot.PlotAndColourRobot();
+hold on
+[f,v,data] = plyread('environment/Cage5.ply','tri');
+vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
+cage = trisurf(f,v(:,1)+ 0,v(:,2) + 0, v(:,3) + 0,...
+    'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
+%board
+[f,v,data] = plyread('environment/Board.ply','tri');      
+vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
+board = trisurf(f,v(:,1)+0.2075,v(:,2) + 0.4, v(:,3) + 0.02,...
+    'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
+%button
+[f,v,data] = plyread('environment/button.ply','tri');       
+vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
+button = trisurf(f,v(:,1)-0.2075,v(:,2)+0.2, v(:,3)-0.0,...
+    'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
+camlight;
+% set(gca, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
+
+%get the current joint state of real robot or simulation
+if realRobot == 1
+    % Enabling robot movement and gripper
+    % Plug ethernet from modem to laptop.
+    % Plug ethernet from modem to upboard.
+    % Connect upboard powersource (socket to triangular prism ting to upboard)
+    % Set up Cyton on the table (screw onto). Connect powersource (socket to
+    % cyton).
+    % Connect usb from Cyton to Upboard.
+    % Open PuTTy, enter 192.168.0.??? and connect.
+    % Username and password is student.
+    % Turn on the Cyton and hold the arm up whilst entering- roslaunch cute_bringup cute_bringup.launch
+    % If red errors come up, ctrl c and keep retrying until the successful
+    % message appears with no red errors.
+    % Now open up another terminal in PuTTy by right clicking on the window bar and
+    % click duplicate session.
+    % Login with the same username and password again (student).
+    % Enter roslaunch robotics_cyton robotics-sim.launch.
+    % If there are errors, may need to turn off the cyton and retry from the
+    % first step.
+    % If successful and the green text saying You can start planning now! comes
+    % up, run the below setup section, then whichever other section.
+    %Setup Variables
+    rosshutdown;
+    rosinit(rosIP);
+    cute_enable_robot_client = rossvcclient('cute_enable_robot')
+    cute_enable_robot_msg = rosmessage(cute_enable_robot_client);
+
+    %To Enable/Disable the robot; Note: Hold onto the arm when disabling the robot.
+
+    cute_enable_robot_msg.EnableRobot = true; %false
+    cute_enable_robot_client.call(cute_enable_robot_msg);
+    %Enabling Gripper
+    %Setup Variables
+
+    cute_enable_gripper_client = rossvcclient('claw_controller/torque_enable')
+    cute_enable_gripper_msg = rosmessage(cute_enable_gripper_client);
+
+    %To Enable/Disable the gripper
+
+    cute_enable_gripper_msg.TorqueEnable = true;% false
+    cute_enable_gripper_client.call(cute_enable_gripper_msg);
+        
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+    stateSub = rossubscriber('/joint_states');
+    receive(stateSub,2)
+    msg = stateSub.LatestMessage;
+    currentJointAngles = msg.Position;
+    qCurrent = currentJointAngles(1:7)'
+else
+    qCurrent = robot.model.getpos()
+end
+%get the trajectory
+    for i=1:steps
+        % Use trapezoidal velocity interpolation to find the next joint
+        % angle.
+        qTry = (1-s(i))*qCurrent + s(i)*pitstop
+        qMatrix(i,:) = qTry;
+    end
+%test trajectory for collision
+
+%plot the trajectory in simulation
+    for i=1:steps
+        % Interrupt While loop that executes upon Emergency Stop toggle
+        % button being pressed. the drawnow allows interruption, and once
+        % the Emergency Stop toggle button is depressed, the movement
+        % continues.
+        while eStop == 1
+        drawnow;
+        end
+        robot.model.plot(qMatrix(i,:),'noarrow','workspace',robot.workspace, 'scale', scale);
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
+        handles.Joint1Box.String = joint1; %for edit box
+        handles.Joint2Box.String = joint2; %for edit box
+        handles.Joint3Box.String = joint3; %for edit box
+        handles.Joint4Box.String = joint4; %for edit box
+        handles.Joint5Box.String = joint5; %for edit box
+        handles.Joint6Box.String = joint6; %for edit box
+        handles.Joint7Box.String = joint7; %for edit box 
+        
+        endeffector = robot.model.fkine(qMatrix(i,:))
+        xInput = endeffector(1,4);
+        yInput = endeffector(2,4);
+        zInput = endeffector(3,4);
+        rpyValues = tr2rpy(endeffector);
+        rollInput = rpyValues(1);
+        pitchInput = rpyValues(2);
+        yawInput = rpyValues(3);
+        handles.XInput.String = xInput; %for edit box
+        handles.YInput.String = yInput; %for edit box
+        handles.ZInput.String = zInput; %for edit box
+        handles.RollInput.String = rollInput; %for edit box
+        handles.PitchInput.String = pitchInput; %for edit box
+        handles.YawInput.String = yawInput; %for edit box
+    end
+%plot the trajectory in real robot
+    if realRobot == 1
+        for i=1:steps
+        while eStop == 1
+        drawnow;
+        end
+        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+        cute_multi_joint_client.call(cute_multi_joint_msg);
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
+        handles.Joint1Box.String = joint1; %for edit box
+        handles.Joint2Box.String = joint2; %for edit box
+        handles.Joint3Box.String = joint3; %for edit box
+        handles.Joint4Box.String = joint4; %for edit box
+        handles.Joint5Box.String = joint5; %for edit box
+        handles.Joint6Box.String = joint6; %for edit box
+        handles.Joint7Box.String = joint7; %for edit box 
+        
+        endeffector = robot.model.fkine(qMatrix(i,:))
+        xInput = endeffector(1,4);
+        yInput = endeffector(2,4);
+        zInput = endeffector(3,4);
+        rpyValues = tr2rpy(endeffector);
+        rollInput = rpyValues(1);
+        pitchInput = rpyValues(2);
+        yawInput = rpyValues(3);
+        handles.XInput.String = xInput; %for edit box
+        handles.YInput.String = yInput; %for edit box
+        handles.ZInput.String = zInput; %for edit box
+        handles.RollInput.String = rollInput; %for edit box
+        handles.PitchInput.String = pitchInput; %for edit box
+        handles.YawInput.String = yawInput; %for edit box
+        end
+    end
+
+        
+
+
+% --- Executes on button press in Play.
+function Play_Callback(hObject, eventdata, handles)
+% hObject    handle to Play (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global boardValue;
+global robot;
+global eStop;
+global realRobot;
+global qCurrent;
+global joint1;
+global joint2;
+global joint3;
+global joint4;
+global joint5;
+global joint6;
+global joint7;
+global xInput;
+global yInput;
+global zInput;
+global rollInput;
+global pitchInput;
+global yawInput;
+global cellMatrix;
+global pickupMatrix;
+global steps;
+global s;
+global gripPiece;
+global open;
+global start;
+boardValue
+switched = false;
+if start == 1
+    % open the claw
+    cute_claw_publisher = rospublisher('/claw_controller/command');
+    cute_claw_msg = rosmessage(cute_claw_publisher);
+    cute_claw_msg.Data = open; % Values must be between -1.5 (closed) and 0 (open)
+    cute_claw_publisher.send(cute_claw_msg);
+    start = 0;
+end
+%get the current joint state of real robot or simulation
+if realRobot == 1
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+    stateSub = rossubscriber('/joint_states');
+    receive(stateSub,2)
+    msg = stateSub.LatestMessage;
+    currentJointAngles = msg.Position;
+    qCurrent = currentJointAngles(1:7)'
+else
+    qCurrent = robot.model.getpos()
+end
+%get the trajectory
+    for i=1:steps
+        % Use trapezoidal velocity interpolation to find the next joint
+        % angle.
+        qTry = (1-s(i))*qCurrent + s(i)*cellMatrix(boardValue,:)
+        qMatrix(i,:) = qTry;
+    end
+%collision check the trajectory
+%put a waitfor() in here
+%plot the trajectory in simulation
+    for i=1:steps
+        % Interrupt While loop that executes upon Emergency Stop toggle
+        % button being pressed. the drawnow allows interruption, and once
+        % the Emergency Stop toggle button is depressed, the movement
+        % continues.
+        while eStop == 1
+        drawnow;
+        end
+        robot.model.plot(qMatrix(i,:));
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
+        handles.Joint1Box.String = joint1; %for edit box
+        handles.Joint2Box.String = joint2; %for edit box
+        handles.Joint3Box.String = joint3; %for edit box
+        handles.Joint4Box.String = joint4; %for edit box
+        handles.Joint5Box.String = joint5; %for edit box
+        handles.Joint6Box.String = joint6; %for edit box
+        handles.Joint7Box.String = joint7; %for edit box 
+        
+        endeffector = robot.model.fkine(qMatrix(i,:))
+        xInput = endeffector(1,4);
+        yInput = endeffector(2,4);
+        zInput = endeffector(3,4);
+        rpyValues = tr2rpy(endeffector);
+        rollInput = rpyValues(1);
+        pitchInput = rpyValues(2);
+        yawInput = rpyValues(3);
+        handles.XInput.String = xInput; %for edit box
+        handles.YInput.String = yInput; %for edit box
+        handles.ZInput.String = zInput; %for edit box
+        handles.RollInput.String = rollInput; %for edit box
+        handles.PitchInput.String = pitchInput; %for edit box
+        handles.YawInput.String = yawInput; %for edit box
+    end
+%plot the trajectory in real robot
+    if realRobot == 1
+        for i=1:steps
+        while eStop == 1
+        drawnow;
+        end
+        cute_multi_joint_msg.JointStates = qMatrix(i,:);
+        cute_multi_joint_client.call(cute_multi_joint_msg);
+        joint1 = qMatrix(i,1);
+        joint2 = qMatrix(i,2);
+        joint3 = qMatrix(i,3);
+        joint4 = qMatrix(i,4);
+        joint5 = qMatrix(i,5);
+        joint6 = qMatrix(i,6);
+        joint7 = qMatrix(i,7);
+        handles.Joint1Box.String = joint1; %for edit box
+        handles.Joint2Box.String = joint2; %for edit box
+        handles.Joint3Box.String = joint3; %for edit box
+        handles.Joint4Box.String = joint4; %for edit box
+        handles.Joint5Box.String = joint5; %for edit box
+        handles.Joint6Box.String = joint6; %for edit box
+        handles.Joint7Box.String = joint7; %for edit box 
+        
+        endeffector = robot.model.fkine(qMatrix(i,:))
+        xInput = endeffector(1,4);
+        yInput = endeffector(2,4);
+        zInput = endeffector(3,4);
+        rpyValues = tr2rpy(endeffector);
+        rollInput = rpyValues(1);
+        pitchInput = rpyValues(2);
+        yawInput = rpyValues(3);
+        handles.XInput.String = xInput; %for edit box
+        handles.YInput.String = yInput; %for edit box
+        handles.ZInput.String = zInput; %for edit box
+        handles.RollInput.String = rollInput; %for edit box
+        handles.PitchInput.String = pitchInput; %for edit box
+        handles.YawInput.String = yawInput; %for edit box
+        end
+    end
+%move to pick up the piece.
+%get the current joint state of real robot or simulation
+%     while eStop == 1
+%     drawnow;
+%     end
+    pickupJointAngles = pickupMatrix(boardValue,:)
+    pullJointAngles = cellMatrix(boardValue,:)
+    robot.model.plot(pickupJointAngles);
+    
+    joint1 = pickupJointAngles(1);
+    joint2 = pickupJointAngles(2);
+    joint3 = pickupJointAngles(3);
+    joint4 = pickupJointAngles(4);
+    joint5 = pickupJointAngles(5);
+    joint6 = pickupJointAngles(6);
+    joint7 = pickupJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pickupJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+    
+    robot.model.plot(pullJointAngles);
+    
+    joint1 = pullJointAngles(1);
+    joint2 = pullJointAngles(2);
+    joint3 = pullJointAngles(3);
+    joint4 = pullJointAngles(4);
+    joint5 = pullJointAngles(5);
+    joint6 = pullJointAngles(6);
+    joint7 = pullJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pullJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+if realRobot == 1
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client); 
+%     while eStop == 1 %"OR" IsCurtain() == false
+%         drawnow;
+%             IsCurtain();
+%     end
+    cute_multi_joint_msg.JointStates = pickupJointAngles;
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+    joint1 = pickupJointAngles(1);
+    joint2 = pickupJointAngles(2);
+    joint3 = pickupJointAngles(3);
+    joint4 = pickupJointAngles(4);
+    joint5 = pickupJointAngles(5);
+    joint6 = pickupJointAngles(6);
+    joint7 = pickupJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pickupJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+    % open the claw
+    cute_claw_publisher = rospublisher('/claw_controller/command');
+    cute_claw_msg = rosmessage(cute_claw_publisher);
+    cute_claw_msg.Data = gripPiece; % Values must be between -1.5 (closed) and 0 (open)
+    cute_claw_publisher.send(cute_claw_msg);
+    
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client); 
+%     while eStop == 1 %"OR" IsCurtain() == false
+%         drawnow;
+%             IsCurtain();
+%     end
+    cute_multi_joint_msg.JointStates = pullJointAngles;
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+    joint1 = pullJointAngles(1);
+    joint2 = pullJointAngles(2);
+    joint3 = pullJointAngles(3);
+    joint4 = pullJointAngles(4);
+    joint5 = pullJointAngles(5);
+    joint6 = pullJointAngles(6);
+    joint7 = pullJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pullJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+else
+end
+    switch boardValue
+        case 3
+            boardValue = 21
+            handles.ManualPositionValue.String = boardValue
+            switched = true
+        case 14
+            boardValue = 27
+            handles.ManualPositionValue.String = boardValue
+            switched = true
+        case 18
+            boardValue = 20
+            handles.ManualPositionValue.String = boardValue
+            switched = true
+        case 12
+            boardValue = 2
+            handles.ManualPositionValue.String = boardValue
+            switched = true
+        case 26
+            boardValue = 13
+            handles.ManualPositionValue.String = boardValue
+            switched = true
+        case 29 
+            boardValue = 5
+            handles.ManualPositionValue.String = boardValue
+            switched = true
+    end
+    %get the current joint state of real robot or simulation
+if switched == true
+    if realRobot ==1
+        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
+        stateSub = rossubscriber('/joint_states');
+        receive(stateSub,2)
+        msg = stateSub.LatestMessage;
+        currentJointAngles = msg.Position;
+        qCurrent = currentJointAngles(1:7)';
+    else
+        qCurrent = robot.model.getpos();
+    end
+    %get the trajectory
+        for i=1:steps
+            % Use trapezoidal velocity interpolation to find the next joint
+            % angle.
+            qTry = (1-s(i))*qCurrent + s(i)*cellMatrix(boardValue,:);
+            qMatrix(i,:) = qTry;
+        end
+    %plot the trajectory in simulation
+        for i=1:steps
+            % Interrupt While loop that executes upon Emergency Stop toggle
+            % button being pressed. the drawnow allows interruption, and once
+            % the Emergency Stop toggle button is depressed, the movement
+            % continues.
+            while eStop == 1
+            drawnow;
+            end
+            robot.model.plot(qMatrix(i,:));
+            joint1 = qMatrix(i,1);
+            joint2 = qMatrix(i,2);
+            joint3 = qMatrix(i,3);
+            joint4 = qMatrix(i,4);
+            joint5 = qMatrix(i,5);
+            joint6 = qMatrix(i,6);
+            joint7 = qMatrix(i,7);
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box 
+
+            endeffector = robot.model.fkine(qMatrix(i,:))
+            xInput = endeffector(1,4);
+            yInput = endeffector(2,4);
+            zInput = endeffector(3,4);
+            rpyValues = tr2rpy(endeffector);
+            rollInput = rpyValues(1);
+            pitchInput = rpyValues(2);
+            yawInput = rpyValues(3);
+            handles.XInput.String = xInput; %for edit box
+            handles.YInput.String = yInput; %for edit box
+            handles.ZInput.String = zInput; %for edit box
+            handles.RollInput.String = rollInput; %for edit box
+            handles.PitchInput.String = pitchInput; %for edit box
+            handles.YawInput.String = yawInput; %for edit box
+        end
+    %plot the trajectory in real robot
+        if realRobot == 1
+            for i=1:steps
+            while eStop == 1
+            drawnow;
+            end
+            cute_multi_joint_msg.JointStates = qMatrix(i,:);
+            cute_multi_joint_client.call(cute_multi_joint_msg);
+            joint1 = qMatrix(i,1);
+            joint2 = qMatrix(i,2);
+            joint3 = qMatrix(i,3);
+            joint4 = qMatrix(i,4);
+            joint5 = qMatrix(i,5);
+            joint6 = qMatrix(i,6);
+            joint7 = qMatrix(i,7);
+            handles.Joint1Box.String = joint1; %for edit box
+            handles.Joint2Box.String = joint2; %for edit box
+            handles.Joint3Box.String = joint3; %for edit box
+            handles.Joint4Box.String = joint4; %for edit box
+            handles.Joint5Box.String = joint5; %for edit box
+            handles.Joint6Box.String = joint6; %for edit box
+            handles.Joint7Box.String = joint7; %for edit box 
+
+            endeffector = robot.model.fkine(qMatrix(i,:))
+            xInput = endeffector(1,4);
+            yInput = endeffector(2,4);
+            zInput = endeffector(3,4);
+            rpyValues = tr2rpy(endeffector);
+            rollInput = rpyValues(1);
+            pitchInput = rpyValues(2);
+            yawInput = rpyValues(3);
+            handles.XInput.String = xInput; %for edit box
+            handles.YInput.String = yInput; %for edit box
+            handles.ZInput.String = zInput; %for edit box
+            handles.RollInput.String = rollInput; %for edit box
+            handles.PitchInput.String = pitchInput; %for edit box
+            handles.YawInput.String = yawInput; %for edit box
+            end
+        end
+    %move to pick up the piece.
+%get the current joint state of real robot or simulation
+%     while eStop == 1
+%     drawnow;
+%     end
+    pickupJointAngles = pickupMatrix(boardValue,:)
+    pullJointAngles = cellMatrix(boardValue,:)
+    robot.model.plot(pickupJointAngles);
+    
+    joint1 = pickupJointAngles(1);
+    joint2 = pickupJointAngles(2);
+    joint3 = pickupJointAngles(3);
+    joint4 = pickupJointAngles(4);
+    joint5 = pickupJointAngles(5);
+    joint6 = pickupJointAngles(6);
+    joint7 = pickupJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pickupJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+    
+    robot.model.plot(pullJointAngles);
+    
+    joint1 = pullJointAngles(1);
+    joint2 = pullJointAngles(2);
+    joint3 = pullJointAngles(3);
+    joint4 = pullJointAngles(4);
+    joint5 = pullJointAngles(5);
+    joint6 = pullJointAngles(6);
+    joint7 = pullJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pullJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+if realRobot == 1
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client); 
+%     while eStop == 1 %"OR" IsCurtain() == false
+%         drawnow;
+%             IsCurtain();
+%     end
+    cute_multi_joint_msg.JointStates = pickupJointAngles;
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+    joint1 = pickupJointAngles(1);
+    joint2 = pickupJointAngles(2);
+    joint3 = pickupJointAngles(3);
+    joint4 = pickupJointAngles(4);
+    joint5 = pickupJointAngles(5);
+    joint6 = pickupJointAngles(6);
+    joint7 = pickupJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pickupJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+    % open the claw
+    cute_claw_publisher = rospublisher('/claw_controller/command');
+    cute_claw_msg = rosmessage(cute_claw_publisher);
+    cute_claw_msg.Data = gripPiece; % Values must be between -1.5 (closed) and 0 (open)
+    cute_claw_publisher.send(cute_claw_msg);
+    
+    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
+    cute_multi_joint_msg = rosmessage(cute_multi_joint_client); 
+%     while eStop == 1 %"OR" IsCurtain() == false
+%         drawnow;
+%             IsCurtain();
+%     end
+    cute_multi_joint_msg.JointStates = pullJointAngles;
+    cute_multi_joint_client.call(cute_multi_joint_msg);
+    joint1 = pullJointAngles(1);
+    joint2 = pullJointAngles(2);
+    joint3 = pullJointAngles(3);
+    joint4 = pullJointAngles(4);
+    joint5 = pullJointAngles(5);
+    joint6 = pullJointAngles(6);
+    joint7 = pullJointAngles(7);
+    handles.Joint1Box.String = joint1; %for edit box
+    handles.Joint2Box.String = joint2; %for edit box
+    handles.Joint3Box.String = joint3; %for edit box
+    handles.Joint4Box.String = joint4; %for edit box
+    handles.Joint5Box.String = joint5; %for edit box
+    handles.Joint6Box.String = joint6; %for edit box
+    handles.Joint7Box.String = joint7; %for edit box 
+
+    endeffector = robot.model.fkine(pullJointAngles)
+    xInput = endeffector(1,4);
+    yInput = endeffector(2,4);
+    zInput = endeffector(3,4);
+    rpyValues = tr2rpy(endeffector);
+    rollInput = rpyValues(1);
+    pitchInput = rpyValues(2);
+    yawInput = rpyValues(3);
+    handles.XInput.String = xInput; %for edit box
+    handles.YInput.String = yInput; %for edit box
+    handles.ZInput.String = zInput; %for edit box
+    handles.RollInput.String = rollInput; %for edit box
+    handles.PitchInput.String = pitchInput; %for edit box
+    handles.YawInput.String = yawInput; %for edit box
+else
+end
 end
