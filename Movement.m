@@ -1,3 +1,8 @@
+%Accepts robot object, whether the real robot will be controlled,
+%trapezoidal trajectory parameters s and steps, the joint state to be
+%reached, the scale of the simulated model, the game piece vertices needed
+%to simulate movement of the game pieces, and handles to the edit text
+%boxes of the GUI.
 function Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
 %% Get the current joint state of real robot or simulation
 if realRobot == 1
@@ -20,6 +25,8 @@ end
     end
 %% Test trajectory for collision
 % isCollision = CheckCollision(robot.model, qMatrix, vertex, faces, faceNormals)
+% if collision will happen on this path remake trajectory using pitstop as
+% qNext and then fun
 %% Plot the trajectory in simulation
     for i=1:steps
         % Interrupt While loop that executes upon Emergency Stop toggle
@@ -50,11 +57,11 @@ end
         handles.Joint6Box.String = joint6; %for edit box
         handles.Joint7Box.String = joint7; %for edit box 
         
-        endeffector = robot.model.fkine(qMatrix(i,:));
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
+        endEffectorTr = robot.model.fkine(qMatrix(i,:));
+        xInput = endEffectorTr(1,4);
+        yInput = endEffectorTr(2,4);
+        zInput = endEffectorTr(3,4);
+        rpyValues = tr2rpy(endEffectorTr);
         rollInput = rpyValues(1);
         pitchInput = rpyValues(2);
         yawInput = rpyValues(3);
@@ -65,8 +72,8 @@ end
         handles.PitchInput.String = pitchInput; %for edit box
         handles.YawInput.String = yawInput; %for edit box
         % Move Game Piece
-        updatedPoints = [endEffector * [gamePieceVerts,ones(gamePieceVertexCount,1)]']';  
-        gamePiece.Vertices = updatedPoints(:,1:3);
+%         updatedPoints = [endEffectorTr * [gamePieceVerts,ones(gamePieceVertexCount,1)]']';  
+%         gamePiece.Vertices = updatedPoints(:,1:3);
     end
 %% Plot the trajectory in real robot
     if realRobot == 1
@@ -98,11 +105,11 @@ end
         handles.Joint6Box.String = joint6; %for edit box
         handles.Joint7Box.String = joint7; %for edit box 
         
-        endeffector = robot.model.fkine(qMatrix(i,:));
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
+        endEffectorTr = robot.model.fkine(qMatrix(i,:));
+        xInput = endEffectorTr(1,4);
+        yInput = endEffectorTr(2,4);
+        zInput = endEffectorTr(3,4);
+        rpyValues = tr2rpy(endEffectorTr);
         rollInput = rpyValues(1);
         pitchInput = rpyValues(2);
         yawInput = rpyValues(3);
