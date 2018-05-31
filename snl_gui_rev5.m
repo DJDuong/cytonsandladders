@@ -22,7 +22,7 @@ function varargout = snl_gui_rev5(varargin)
 
 % Edit the above text to modify the response to help snl_gui
 
-% Last Modified by GUIDE v2.5 29-May-2018 21:48:42
+% Last Modified by GUIDE v2.5 31-May-2018 16:59:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -94,7 +94,9 @@ function snl_gui_OpeningFcn(hObject, eventdata, handles, varargin)
     global gripPiece;
     global open;
     global trStart;
-
+    global collisioncheck;
+    
+    collisioncheck = 0;
     cellMatrix = xlsread('celljointAngles.xlsx');
     pickupMatrix = xlsread('pickupjointAngles.xlsx');
     pitstop = xlsread('pitstop.xlsx');
@@ -306,17 +308,21 @@ function MoveByPosition_Callback(hObject, eventdata, handles)
     global gamePiece;
     global gamePieceVerts;
     global gamePieceVertexCount;
+    global collisioncheck;
 %% Move back with gripped piece
     qNext = cellMatrix(boardValue,:)
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Getting newly input board value
     boardValue = str2num(handles.ManualPositionValue.String)
 %% Moving the piece to the next board value
     qNext = cellMatrix(boardValue,:)
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Move piece towards board
     qNext = pickupMatrix(boardValue,:);
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 
 % --- Executes on button press in Reset.
 function Reset_Callback(hObject, eventdata, handles)
@@ -336,9 +342,11 @@ function Reset_Callback(hObject, eventdata, handles)
     global gamePiece;
     global gamePieceVerts;
     global gamePieceVertexCount;
+    global collisioncheck;
 %% Move back with gripped piece
     qNext = cellMatrix(boardValue,:)
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Moving the piece to the pitstop
     Movement(robot, realRobot, s, steps, pitstop, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
 
@@ -363,41 +371,50 @@ function Initialise_Callback(hObject, eventdata, handles)
     global gamePiece;
     global gamePieceVerts;
     global gamePieceVertexCount;
+    global collisioncheck;
 %% Setting up environment
     robot.model.base = transl(0,0,0.1185)
-    % robot.model.plot(qZero)
     robot.PlotAndColourRobot();
     hold on
+    %Cage
     [f,v,data] = plyread('environment/Cage5.ply','tri');
     vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
-    cage = trisurf(f,v(:,1)+ 0,v(:,2) + 0, v(:,3) + 0,...
+    cage = trisurf(f,v(:,1)+ 0,v(:,2) + 0, v(:,3) - 0.01,...
        'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
-    %board
+    %Board
     [f,v,data] = plyread('environment/Board2.ply','tri');      
     vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
-    board = trisurf(f,v(:,1)+0,v(:,2) + 0.3, v(:,3) + 0.02,...
+    board = trisurf(f,v(:,1)+0,v(:,2) + 0.3, v(:,3) + 0,...
        'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
-    %button
+    %Button
     [f,v,data] = plyread('environment/button.ply','tri');      
     vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
     button = trisurf(f,v(:,1)+0.6,v(:,2)+0.65, v(:,3)+0.2,...
        'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
-    %button
+    %UR3 Jig Plate
     [f,v,data] = plyread('environment/ur3 jig plate.ply','tri');      
     vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
     ur3 = trisurf(f,v(:,1)+0,v(:,2)+0, v(:,3)+0,...
        'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
-    %button
+    %Cyton Base
     [f,v,data] = plyread('environment/cytonbase.ply','tri');      
     vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
     cytonbase = trisurf(f,v(:,1)+0,v(:,2)+0, v(:,3)+0.01,...
        'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
-    %RobotBase
+    %Robot Base
     [f,v,data] = plyread('environment/RobotBase.ply','tri');      
     vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
-    button = trisurf(f,v(:,1)+0,v(:,2)+0, v(:,3)+0.016,...
+    robotbase = trisurf(f,v(:,1)+0,v(:,2)+0, v(:,3)+0.016,...
        'FaceVertexCData',vertexColours,'EdgeColor','interp','EdgeLighting','flat');
-%     %GamePiece
+   %image is 260mm x 175mm
+    img = imread('Board.jpg');
+    xImage = [-0.13 0.13; -0.13 0.13];   %# The x data for the image corners
+    yImage = [0.39 0.39; 0.39 0.39];             %# The y data for the image corners
+    zImage = [0.04 0.04; 0.215 0.215];   %# The z data for the image corners
+    surf(xImage,yImage,zImage,...    %# Plot the surface
+     'CData',img,...
+     'FaceColor','texturemap');
+%     %Game Piece
 %     [f,v,data] = plyread('environment/gamePiece.ply','tri');
 %     vertexColours = [data.vertex.red, data.vertex.green, data.vertex.blue] / 255;
 %     gamePieceVertexCount = size(v,1);
@@ -452,12 +469,15 @@ end
 %% Move to Pitstop
     qNext = pitstop;
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Move to Start Cell
     qNext = cellMatrix(boardValue,:)
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Move to pick up the piece.
     qNext = pickupMatrix(boardValue,:)
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Close the claw
 if realRobot == 1
     cute_claw_publisher = rospublisher('/claw_controller/command');
@@ -485,19 +505,22 @@ function Play_Callback(hObject, eventdata, handles)
     global gamePiece;
     global gamePieceVerts;
     global gamePieceVertexCount;
+    global collisioncheck;
 %% Move back with gripped piece
     qNext = cellMatrix(boardValue,:)
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Getting die value and using it to increment the board value
     boardValue = dieValue+boardValue
     handles.ManualPositionValue.String = boardValue
     switched = false;
 %% Moving the piece to the next board value
     qNext = cellMatrix(boardValue,:)
-    BigMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+    CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Move piece towards board
     qNext = pickupMatrix(boardValue,:);
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Check if there is cyton or ladder
     switch boardValue
         case 3
@@ -531,13 +554,15 @@ if switched == true
 %% Move back with gripped piece
     qNext = cellMatrix(boardValue,:)
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
     boardValue = nextBoardValue;
 %% Moving the piece to the next board value
     qNext = cellMatrix(boardValue,:)
-    BigMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+    CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 %% Move piece towards board
     qNext = pickupMatrix(boardValue,:);
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 end
 if boardValue == 30
     display('winna winna chiken dinna');
@@ -555,12 +580,62 @@ if boardValue == 30
     %% Move back
     qNext = cellMatrix(boardValue,:);
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
     %% Move to Pitstop
     qNext = pitstop;
     Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
 
 end
 
+% --- Executes on button press in CustomJoints.
+function CustomJoints_Callback(hObject, eventdata, handles)
+% hObject    handle to CustomJoints (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%% Globals
+global robot;
+global realRobot;
+global steps;
+global s;
+global scale;
+global gamePiece;
+global gamePieceVerts;
+global gamePieceVertexCount;
+global collisioncheck;
+%% Move according to input joint angles
+    qNext = [str2num(handles.Joint1Box.String) str2num(handles.Joint2Box.String) ...
+        str2num(handles.Joint3Box.String) str2num(handles.Joint4Box.String) ...
+        str2num(handles.Joint5Box.String) str2num(handles.Joint6Box.String) ...
+        str2num(handles.Joint7Box.String)]
+    Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
+
+ % --- Executes on button press in CustomCartesian.
+function CustomCartesian_Callback(hObject, eventdata, handles)
+% hObject    handle to CustomCartesian (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+%% Globals
+global robot;
+global realRobot;
+global steps;
+global s;
+global scale;
+global gamePiece;
+global gamePieceVerts;
+global gamePieceVertexCount;
+global collisioncheck;
+%% Move according to input xyzrpy
+    xyzColumn = [str2num(handles.XInput.String); str2num(handles.YInput.String);...
+        str2num(handles.ZInput.String)];
+    endEffectorInput = [rpy2r(str2num(handles.RollInput.String) ,...
+        str2num(handles.PitchInput.String), str2num(handles.YawInput.String))...
+        xyzColumn;zeros(1,3) 1];
+    qNext = robot.model.ikcon(endEffectorInput);
+    Movement(robot, realRobot, s, steps, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, handles)
+%     CollisionCheckMovement(robot, realRobot, s, steps, pitstop, qNext, scale, gamePieceVertexCount, gamePieceVerts, gamePiece, collisioncheck, handles)
+   
 % --- Executes on button press in EmergencyStop.
 function EmergencyStop_Callback(hObject, eventdata, handles)
 % hObject    handle to EmergencyStop (see GCBO)
@@ -568,7 +643,6 @@ function EmergencyStop_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.EmergencyStop.Value = get(hObject,'Value')
 % Hint: get(hObject,'Value') returns toggle state of EmergencyStop
-
 
 % --- Executes during object creation, after setting all properties.
 function axes1_CreateFcn(hObject, eventdata, handles)
@@ -578,8 +652,6 @@ function axes1_CreateFcn(hObject, eventdata, handles)
 
 % Hint: place code in OpeningFcn to populate axes1
 
-
-
 function XInput_Callback(hObject, eventdata, handles)
 % hObject    handle to XInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -588,7 +660,6 @@ global xInput;
 xInput = str2double(get(hObject,'String'));
 % Hints: get(hObject,'String') returns contents of XInput as text
 %        str2double(get(hObject,'String')) returns contents of XInput as a double
-
 
 % --- Executes during object creation, after setting all properties.
 function XInput_CreateFcn(hObject, eventdata, handles)
@@ -602,8 +673,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function YInput_Callback(hObject, eventdata, handles)
 % hObject    handle to YInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -612,7 +681,6 @@ global yInput;
 yInput = str2double(get(hObject,'String'));
 % Hints: get(hObject,'String') returns contents of YInput as text
 %        str2double(get(hObject,'String')) returns contents of YInput as a double
-
 
 % --- Executes during object creation, after setting all properties.
 function YInput_CreateFcn(hObject, eventdata, handles)
@@ -626,8 +694,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function ZInput_Callback(hObject, eventdata, handles)
 % hObject    handle to ZInput (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -636,7 +702,6 @@ global zInput;
 zInput = str2double(get(hObject,'String'));
 % Hints: get(hObject,'String') returns contents of ZInput as text
 %        str2double(get(hObject,'String')) returns contents of ZInput as a double
-
 
 % --- Executes during object creation, after setting all properties.
 function ZInput_CreateFcn(hObject, eventdata, handles)
@@ -659,7 +724,6 @@ rollInput = str2double(get(hObject,'String'));
 % Hints: get(hObject,'String') returns contents of RollInput as text
 %        str2double(get(hObject,'String')) returns contents of RollInput as a double
 
-
 % --- Executes during object creation, after setting all properties.
 function RollInput_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to RollInput (see GCBO)
@@ -680,7 +744,6 @@ global pitchInput;
 pitchInput = str2double(get(hObject,'String'));
 % Hints: get(hObject,'String') returns contents of PitchInput as text
 %        str2double(get(hObject,'String')) returns contents of PitchInput as a double
-
 
 % --- Executes during object creation, after setting all properties.
 function PitchInput_CreateFcn(hObject, eventdata, handles)
@@ -704,7 +767,6 @@ yawInput = str2double(get(hObject,'String'));
 % Hints: get(hObject,'String') returns contents of YawInput as text
 %        str2double(get(hObject,'String')) returns contents of YawInput as a double
 
-
 % --- Executes during object creation, after setting all properties.
 function YawInput_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to YawInput (see GCBO)
@@ -716,131 +778,6 @@ function YawInput_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-% --- Executes on button press in CustomCartesian.
-function CustomCartesian_Callback(hObject, eventdata, handles)
-% hObject    handle to CustomCartesian (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global joint1;
-global joint2;
-global joint3;
-global joint4;
-global joint5;
-global joint6;
-global joint7;
-global xInput;
-global yInput;
-global zInput;
-global rollInput;
-global pitchInput;
-global yawInput;
-global robot;
-global realRobot;
-global qCurrent;
-global steps;
-global s;
-    xyzColumn = [xInput;yInput;zInput]
-    endeffectorInput = [rpy2r(rollInput,pitchInput,yawInput) xyzColumn;zeros(1,3) 1]
-    qNext = robot.model.ikcon(endeffectorInput)
-%get the current joint state of real robot or simulation
-    if realRobot ==1
-        cute_multi_joint_client = rossvcclient('/cute_multi_joint');
-        cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
-        stateSub = rossubscriber('/joint_states');
-        receive(stateSub,2)
-        msg = stateSub.LatestMessage;
-        currentJointAngles = msg.Position;
-        qCurrent = currentJointAngles(1:7)'
-    else
-        qCurrent = robot.model.getpos()
-    end
-    %get the trajectory
-        for i=1:steps
-            % Use trapezoidal velocity interpolation to find the next joint
-            % angle.
-            qTry = (1-s(i))*qCurrent + s(i)*qNext;
-            qMatrix(i,:) = qTry;
-        end
-    %plot the trajectory in simulation
-        for i=1:steps
-            % Interrupt While loop that executes upon Emergency Stop toggle
-            % button being pressed. the drawnow allows interruption, and once
-            % the Emergency Stop toggle button is depressed, the movement
-            % continues.
-            while handles.EmergencyStop.Value == 1
-                drawnow;
-            end
-            robot.model.plot(qMatrix(i,:));
-            joint1 = qMatrix(i,1);
-            joint2 = qMatrix(i,2);
-            joint3 = qMatrix(i,3);
-            joint4 = qMatrix(i,4);
-            joint5 = qMatrix(i,5);
-            joint6 = qMatrix(i,6);
-            joint7 = qMatrix(i,7);
-            handles.Joint1Box.String = joint1; %for edit box
-            handles.Joint2Box.String = joint2; %for edit box
-            handles.Joint3Box.String = joint3; %for edit box
-            handles.Joint4Box.String = joint4; %for edit box
-            handles.Joint5Box.String = joint5; %for edit box
-            handles.Joint6Box.String = joint6; %for edit box
-            handles.Joint7Box.String = joint7; %for edit box 
-            
-            endeffector = robot.model.fkine(qMatrix(i,:))
-            xInput = endeffector(1,4);
-            yInput = endeffector(2,4);
-            zInput = endeffector(3,4);
-            rpyValues = tr2rpy(endeffector);
-            rollInput = rpyValues(1);
-            pitchInput = rpyValues(2);
-            yawInput = rpyValues(3);
-            handles.XInput.String = xInput; %for edit box
-            handles.YInput.String = yInput; %for edit box
-            handles.ZInput.String = zInput; %for edit box
-            handles.RollInput.String = rollInput; %for edit box
-            handles.PitchInput.String = pitchInput; %for edit box
-            handles.YawInput.String = yawInput; %for edit box
-        end
-    %plot the trajectory in real robot
-        if realRobot == 1
-            for i=1:steps
-                while handles.EmergencyStop.Value == 1
-                    drawnow;
-                end
-                cute_multi_joint_msg.JointStates = qMatrix(i,:);
-                cute_multi_joint_client.call(cute_multi_joint_msg);
-                joint1 = qMatrix(i,1);
-                joint2 = qMatrix(i,2);
-                joint3 = qMatrix(i,3);
-                joint4 = qMatrix(i,4);
-                joint5 = qMatrix(i,5);
-                joint6 = qMatrix(i,6);
-                joint7 = qMatrix(i,7);
-                handles.Joint1Box.String = joint1; %for edit box
-                handles.Joint2Box.String = joint2; %for edit box
-                handles.Joint3Box.String = joint3; %for edit box
-                handles.Joint4Box.String = joint4; %for edit box
-                handles.Joint5Box.String = joint5; %for edit box
-                handles.Joint6Box.String = joint6; %for edit box
-                handles.Joint7Box.String = joint7; %for edit box 
-
-                endeffector = robot.model.fkine(qMatrix(i,:))
-                xInput = endeffector(1,4);
-                yInput = endeffector(2,4);
-                zInput = endeffector(3,4);
-                rpyValues = tr2rpy(endeffector);
-                rollInput = rpyValues(1);
-                pitchInput = rpyValues(2);
-                yawInput = rpyValues(3);
-                handles.XInput.String = xInput; %for edit box
-                handles.YInput.String = yInput; %for edit box
-                handles.ZInput.String = zInput; %for edit box
-                handles.RollInput.String = rollInput; %for edit box
-                handles.PitchInput.String = pitchInput; %for edit box
-                handles.YawInput.String = yawInput; %for edit box
-            end
-        end
 
 % --- Executes on slider movement.
 function Joint1_Callback(hObject, eventdata, handles)
@@ -858,7 +795,6 @@ handles.Joint1Box.String = joint1; %for edit box
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint1_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint1 (see GCBO)
@@ -869,7 +805,6 @@ function Joint1_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
 
 % --- Executes on slider movement.
 function Joint2_Callback(hObject, eventdata, handles)
@@ -888,7 +823,6 @@ handles.Joint2Box.String = joint2; %for edit box
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint2_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint2 (see GCBO)
@@ -899,7 +833,6 @@ function Joint2_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
 
 % --- Executes on slider movement.
 function Joint3_Callback(hObject, eventdata, handles)
@@ -918,7 +851,6 @@ handles.Joint3Box.String = joint3; %for edit box
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint3_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint3 (see GCBO)
@@ -929,7 +861,6 @@ function Joint3_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
 
 % --- Executes on slider movement.
 function Joint4_Callback(hObject, eventdata, handles)
@@ -948,7 +879,6 @@ handles.Joint4Box.String = joint4; %for edit box
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint4_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint4 (see GCBO)
@@ -959,7 +889,6 @@ function Joint4_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
 
 % --- Executes on slider movement.
 function Joint5_Callback(hObject, eventdata, handles)
@@ -978,7 +907,6 @@ handles.Joint5Box.String = joint5; %for edit box
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint5_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint5 (see GCBO)
@@ -989,7 +917,6 @@ function Joint5_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
 
 % --- Executes on slider movement.
 function Joint6_Callback(hObject, eventdata, handles)
@@ -1008,7 +935,6 @@ handles.Joint6Box.String = joint6; %for edit box
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint6_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint6 (see GCBO)
@@ -1019,7 +945,6 @@ function Joint6_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
 
 % --- Executes on slider movement.
 function Joint7_Callback(hObject, eventdata, handles)
@@ -1038,7 +963,6 @@ handles.Joint7Box.String = joint7; %for edit box
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint7_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint7 (see GCBO)
@@ -1049,131 +973,6 @@ function Joint7_CreateFcn(hObject, eventdata, handles)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
-
-
-% --- Executes on button press in CustomJoints.
-function CustomJoints_Callback(hObject, eventdata, handles)
-% hObject    handle to CustomJoints (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global robot;
-global realRobot;
-global qCurrent;
-global joint1;
-global joint2;
-global joint3;
-global joint4;
-global joint5;
-global joint6;
-global joint7;
-global xInput;
-global yInput;
-global zInput;
-global rollInput;
-global pitchInput;
-global yawInput;
-global steps;
-global s;
-q = [joint1 joint2 joint3 joint4 joint5 joint6 joint7];
-%get the current joint state of real robot or simulation
-if realRobot ==1
-    cute_multi_joint_client = rossvcclient('/cute_multi_joint');
-    cute_multi_joint_msg = rosmessage(cute_multi_joint_client);
-    stateSub = rossubscriber('/joint_states');
-    receive(stateSub,2)
-    msg = stateSub.LatestMessage;
-    currentJointAngles = msg.Position;
-    qCurrent = currentJointAngles(1:7)'
-else
-    qCurrent = robot.model.getpos()
-end
-%get the trajectory
-    for i=1:steps
-        % Use trapezoidal velocity interpolation to find the next joint
-        % angle.
-        qTry = (1-s(i))*qCurrent + s(i)*q;
-        qMatrix(i,:) = qTry;
-    end
-%plot the trajectory in simulation
-    for i=1:steps
-        % Interrupt While loop that executes upon Emergency Stop toggle
-        % button being pressed. the drawnow allows interruption, and once
-        % the Emergency Stop toggle button is depressed, the movement
-        % continues.
-        while handles.EmergencyStop.Value == 1
-        drawnow;
-        end
-        robot.model.plot(qMatrix(i,:));
-        joint1 = qMatrix(i,1);
-        joint2 = qMatrix(i,2);
-        joint3 = qMatrix(i,3);
-        joint4 = qMatrix(i,4);
-        joint5 = qMatrix(i,5);
-        joint6 = qMatrix(i,6);
-        joint7 = qMatrix(i,7);
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box 
-        endeffector = robot.model.fkine(qMatrix(i,:))
-        
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
-        rollInput = rpyValues(1);
-        pitchInput = rpyValues(2);
-        yawInput = rpyValues(3);
-        handles.XInput.String = xInput; %for edit box
-        handles.YInput.String = yInput; %for edit box
-        handles.ZInput.String = zInput; %for edit box
-        handles.RollInput.String = rollInput; %for edit box
-        handles.PitchInput.String = pitchInput; %for edit box
-        handles.YawInput.String = yawInput; %for edit box
-    end
-%plot the trajectory in real robot
-    if realRobot == 1
-        for i=1:steps
-        while handles.EmergencyStop.Value == 1
-        drawnow;
-        end
-        cute_multi_joint_msg.JointStates = qMatrix(i,:);
-        cute_multi_joint_client.call(cute_multi_joint_msg);
-        joint1 = qMatrix(i,1);
-        joint2 = qMatrix(i,2);
-        joint3 = qMatrix(i,3);
-        joint4 = qMatrix(i,4);
-        joint5 = qMatrix(i,5);
-        joint6 = qMatrix(i,6);
-        joint7 = qMatrix(i,7);
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box 
-        
-        endeffector = robot.model.fkine(qMatrix(i,:))
-        xInput = endeffector(1,4);
-        yInput = endeffector(2,4);
-        zInput = endeffector(3,4);
-        rpyValues = tr2rpy(endeffector);
-        rollInput = rpyValues(1);
-        pitchInput = rpyValues(2);
-        yawInput = rpyValues(3);
-        handles.XInput.String = xInput; %for edit box
-        handles.YInput.String = yInput; %for edit box
-        handles.ZInput.String = zInput; %for edit box
-        handles.RollInput.String = rollInput; %for edit box
-        handles.PitchInput.String = pitchInput; %for edit box
-        handles.YawInput.String = yawInput; %for edit box
-        end
-    end
-
 
 function Joint1Box_Callback(hObject, eventdata, handles)
 % hObject    handle to Joint1Box (see GCBO)
@@ -1275,8 +1074,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function Joint3Box_Callback(hObject, eventdata, handles)
 % hObject    handle to Joint3Box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1313,7 +1110,6 @@ global joint3Max
 % Hints: get(hObject,'String') returns contents of Joint3Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint3Box as a double
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint3Box_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint3Box (see GCBO)
@@ -1325,8 +1121,6 @@ function Joint3Box_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
 
 function Joint4Box_Callback(hObject, eventdata, handles)
 % hObject    handle to Joint4Box (see GCBO)
@@ -1364,7 +1158,6 @@ global joint4Max
 % Hints: get(hObject,'String') returns contents of Joint4Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint4Box as a double
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint4Box_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint4Box (see GCBO)
@@ -1376,8 +1169,6 @@ function Joint4Box_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
 
 function Joint5Box_Callback(hObject, eventdata, handles)
 % hObject    handle to Joint5Box (see GCBO)
@@ -1428,8 +1219,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function Joint6Box_Callback(hObject, eventdata, handles)
 % hObject    handle to Joint6Box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1466,7 +1255,6 @@ global joint6Max
 % Hints: get(hObject,'String') returns contents of Joint6Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint6Box as a double
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint6Box_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint6Box (see GCBO)
@@ -1478,8 +1266,6 @@ function Joint6Box_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
 
 function Joint7Box_Callback(hObject, eventdata, handles)
 % hObject    handle to Joint7Box (see GCBO)
@@ -1517,7 +1303,6 @@ global joint7Max
 % Hints: get(hObject,'String') returns contents of Joint7Box as text
 %        str2double(get(hObject,'String')) returns contents of Joint7Box as a double
 
-
 % --- Executes during object creation, after setting all properties.
 function Joint7Box_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to Joint7Box (see GCBO)
@@ -1529,4 +1314,3 @@ function Joint7Box_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-

@@ -26,36 +26,28 @@ end
 %% Test trajectory for collision
 % isCollision = CheckCollision(robot.model, qMatrix, vertex, faces, faceNormals)
 % if collision will happen on this path remake trajectory using pitstop as
-% qNext and then fun
+% qNext and then plot from pitstop to cellMatrix.
 %% Plot the trajectory in simulation
     for i=1:steps
-        % Interrupt While loop that executes upon Emergency Stop toggle
-        % button being pressed. the drawnow allows interruption, and once
-        % the Emergency Stop toggle button is depressed, the movement
-        % continues.
+        %Safety Check 1 - Emergency Stop toggled by GUI button
         while handles.EmergencyStop.Value == 1
-        drawnow;
+            drawnow;
         end
-%         IRSensor = Arduino()
+        %Safety Check 2 - IR beam toggled by Arduino values
+%         IRSensor = Arduino();
 %         while IRSensor == 1
 %             drawnow;
-%             IRSensor = Arduino()
+%             IRSensor = Arduino();
 %         end
         robot.model.plot(qMatrix(i,:),'noarrow','workspace',robot.workspace, 'scale', scale);
-        joint1 = qMatrix(i,1);
-        joint2 = qMatrix(i,2);
-        joint3 = qMatrix(i,3);
-        joint4 = qMatrix(i,4);
-        joint5 = qMatrix(i,5);
-        joint6 = qMatrix(i,6);
-        joint7 = qMatrix(i,7);
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box 
+        
+        handles.Joint1Box.String = qMatrix(i,1);
+        handles.Joint2Box.String = qMatrix(i,2);
+        handles.Joint3Box.String = qMatrix(i,3);
+        handles.Joint4Box.String = qMatrix(i,4);
+        handles.Joint5Box.String = qMatrix(i,5);
+        handles.Joint6Box.String = qMatrix(i,6);
+        handles.Joint7Box.String = qMatrix(i,7);
         
         endEffectorTr = robot.model.fkine(qMatrix(i,:));
         xInput = endEffectorTr(1,4);
@@ -78,46 +70,41 @@ end
 %% Plot the trajectory in real robot
     if realRobot == 1
         for i=1:steps
-        %Safety Check 1 - Emergency Stop toggled by GUI button
-        while handles.EmergencyStop.Value == 1
-            drawnow;
-        end
-        %Safety Check 2 - IR beam toggled by Arduino values
-%         IRSensor = Arduino();
-%         while IRSensor == 1
-%             drawnow;
-%             IRSensor = Arduino();
-%         end
-        cute_multi_joint_msg.JointStates = qMatrix(i,:);
-        cute_multi_joint_client.call(cute_multi_joint_msg);
-        joint1 = qMatrix(i,1);
-        joint2 = qMatrix(i,2);
-        joint3 = qMatrix(i,3);
-        joint4 = qMatrix(i,4);
-        joint5 = qMatrix(i,5);
-        joint6 = qMatrix(i,6);
-        joint7 = qMatrix(i,7);
-        handles.Joint1Box.String = joint1; %for edit box
-        handles.Joint2Box.String = joint2; %for edit box
-        handles.Joint3Box.String = joint3; %for edit box
-        handles.Joint4Box.String = joint4; %for edit box
-        handles.Joint5Box.String = joint5; %for edit box
-        handles.Joint6Box.String = joint6; %for edit box
-        handles.Joint7Box.String = joint7; %for edit box 
-        
-        endEffectorTr = robot.model.fkine(qMatrix(i,:));
-        xInput = endEffectorTr(1,4);
-        yInput = endEffectorTr(2,4);
-        zInput = endEffectorTr(3,4);
-        rpyValues = tr2rpy(endEffectorTr);
-        rollInput = rpyValues(1);
-        pitchInput = rpyValues(2);
-        yawInput = rpyValues(3);
-        handles.XInput.String = xInput; %for edit box
-        handles.YInput.String = yInput; %for edit box
-        handles.ZInput.String = zInput; %for edit box
-        handles.RollInput.String = rollInput; %for edit box
-        handles.PitchInput.String = pitchInput; %for edit box
-        handles.YawInput.String = yawInput; %for edit box
+            %Safety Check 1 - Emergency Stop toggled by GUI button
+            while handles.EmergencyStop.Value == 1
+                drawnow;
+            end
+            %Safety Check 2 - IR beam toggled by Arduino values
+            IRSensor = Arduino();
+            while IRSensor == 1
+                drawnow;
+                IRSensor = Arduino();
+            end
+            cute_multi_joint_msg.JointStates = qMatrix(i,:);
+            cute_multi_joint_client.call(cute_multi_joint_msg);
+
+            handles.Joint1Box.String = qMatrix(i,1);
+            handles.Joint2Box.String = qMatrix(i,2);
+            handles.Joint3Box.String = qMatrix(i,3);
+            handles.Joint4Box.String = qMatrix(i,4);
+            handles.Joint5Box.String = qMatrix(i,5);
+            handles.Joint6Box.String = qMatrix(i,6);
+            handles.Joint7Box.String = qMatrix(i,7);
+
+            endEffectorTr = robot.model.fkine(qMatrix(i,:));
+            xInput = endEffectorTr(1,4);
+            yInput = endEffectorTr(2,4);
+            zInput = endEffectorTr(3,4);
+            rpyValues = tr2rpy(endEffectorTr);
+            rollInput = rpyValues(1);
+            pitchInput = rpyValues(2);
+            yawInput = rpyValues(3);
+            handles.XInput.String = xInput; %for edit box
+            handles.YInput.String = yInput; %for edit box
+            handles.ZInput.String = zInput; %for edit box
+            handles.RollInput.String = rollInput; %for edit box
+            handles.PitchInput.String = pitchInput; %for edit box
+            handles.YawInput.String = yawInput; %for edit box
         end
     end
+end
