@@ -1,34 +1,34 @@
 function collision = CheckCollision(cyton, jointMatrix, tVertex, tFace)
     collision = false;
-    tr = zeros(4,4,cyton.n+1);
-    tr(:,:,1) = cyton.base;
-    L = cyton.links;
+    linkTransform = zeros(4,4,cyton.n+1);
+    linkTransform(:,:,1) = cyton.base;
+    linkNo = cyton.links;
     
-    for k=1:size(tVertex,2)
-        vertex = tVertex{k};
-        faces = tFace{k};
+    for objectItr=1:size(tVertex,2)
+        vertex = tVertex{objectItr};
+        faces = tFace{objectItr};
         
         faceNormals = zeros(size(faces,1),3);
         for faceIndex = 1:size(faces,1)
-            v1 = vertex(faces(faceIndex,1)',:);
-            v2 = vertex(faces(faceIndex,2)',:);
-            v3 = vertex(faces(faceIndex,3)',:);
-            faceNormals(faceIndex,:) = unit(cross(v2-v1,v3-v1));
+            vert1 = vertex(faces(faceIndex,1)',:);
+            vert2 = vertex(faces(faceIndex,2)',:);
+            vert3 = vertex(faces(faceIndex,3)',:);
+            faceNormals(faceIndex,:) = unit(cross(vert2-vert1,vert3-vert1));
         end
     
         %gets translations for each link
-        for j = 1 : size(jointMatrix, 1)
-            jointCond = jointMatrix(j, :);
-            for i = 1 : cyton.n
-                tr(:,:,i+1) = tr(:,:,i) * trotz(jointCond(i)+L(i).offset) * transl(0,0,L(i).d) * transl(L(i).a,0,0) * trotx(L(i).alpha);
+        for positionItr = 1 : size(jointMatrix, 1)
+            jointCond = jointMatrix(positionItr, :);
+            for linkItr = 1 : cyton.n
+                linkTransform(:,:,linkItr+1) = linkTransform(:,:,linkItr) * trotz(jointCond(linkItr)+linkNo(linkItr).offset) * transl(0,0,linkNo(linkItr).d) * transl(linkNo(linkItr).a,0,0) * trotx(linkNo(linkItr).alpha);
             end
-            for i = 1 : size(tr,3)-1
+            for linkItr = 1 : size(linkTransform,3)-1
                 for faceIndex = 1:size(faces,1)
                     vertOnPlane = vertex(faces(faceIndex,1)',:);
-                    [intersectP,check] = LinePlaneIntersection(faceNormals(faceIndex,:),vertOnPlane,tr(1:3,4,i)',tr(1:3,4,i+1)'); 
+                    [intersectP,check] = LinePlaneIntersection(faceNormals(faceIndex,:),vertOnPlane,linkTransform(1:3,4,linkItr)',linkTransform(1:3,4,linkItr+1)'); 
                     if check == 1 && IsIntersectionPointInsideTriangle(intersectP,vertex(faces(faceIndex,:)',:))
                         collision = true;
-%                         return
+                        return
                     end
                 end  
             end
