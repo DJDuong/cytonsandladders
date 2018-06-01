@@ -1,8 +1,16 @@
-function isCollision = CheckCollision(cyton, jointMatrix, vertex, faces, faceNormals)
-    isCollision = false;
+function collision = CheckCollision(cyton, jointMatrix, vertex, faces)
+    collision = false;
     tr = zeros(4,4,cyton.n+1);
     tr(:,:,1) = cyton.base;
     L = cyton.links;
+    
+    faceNormals = zeros(size(faces,1),3);
+    for faceIndex = 1:size(faces,1)
+        v1 = vertex(faces(faceIndex,1)',:);
+        v2 = vertex(faces(faceIndex,2)',:);
+        v3 = vertex(faces(faceIndex,3)',:);
+        faceNormals(faceIndex,:) = unit(cross(v2-v1,v3-v1));
+    end
     
     %gets translations for each link
     for j = 1 : size(jointMatrix, 1)
@@ -14,8 +22,8 @@ function isCollision = CheckCollision(cyton, jointMatrix, vertex, faces, faceNor
             for faceIndex = 1:size(faces,1)
                 vertOnPlane = vertex(faces(faceIndex,1)',:);
                 [intersectP,check] = LinePlaneIntersection(faceNormals(faceIndex,:),vertOnPlane,tr(1:3,4,i)',tr(1:3,4,i+1)'); 
-                if check ~= 0
-                    isCollision = true;
+                if check == 1 && IsIntersectionPointInsideTriangle(intersectP,vertex(faces(faceIndex,:)',:))
+                    collision = true;
                 end
             end  
         end
@@ -54,4 +62,39 @@ if (sI < 0 || sI > 1)
 else
     check=1;
 end
+end
+%% IsIntersectionPointInsideTriangle
+% Given a point which is known to be on the same plane as the triangle
+% determine if the point is 
+% inside (result == 1) or 
+% outside a triangle (result ==0 )
+function result = IsIntersectionPointInsideTriangle(intersectP,triangleVerts)
+
+u = triangleVerts(2,:) - triangleVerts(1,:);
+v = triangleVerts(3,:) - triangleVerts(1,:);
+
+uu = dot(u,u);
+uv = dot(u,v);
+vv = dot(v,v);
+
+w = intersectP - triangleVerts(1,:);
+wu = dot(w,u);
+wv = dot(w,v);
+
+D = uv * uv - uu * vv;
+
+% Get and test parametric coords (s and t)
+s = (uv * wv - vv * wu) / D;
+if (s < 0.0 || s > 1.0)        % intersectP is outside Triangle
+    result = 0;
+    return;
+end
+
+t = (uv * wu - uu * wv) / D;
+if (t < 0.0 || (s + t) > 1.0)  % intersectP is outside Triangle
+    result = 0;
+    return;
+end
+
+result = 1;                      % intersectP is in Triangle
 end
